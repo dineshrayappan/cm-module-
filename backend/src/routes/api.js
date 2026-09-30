@@ -30,31 +30,31 @@ router.get('/auth/users', authMiddleware, authController.getUsers);
 // ==========================================
 router.get('/factories', authMiddleware, factoryController.getFactories);
 router.get('/factories/:id', authMiddleware, factoryController.getFactoryById);
-router.post('/factories', authMiddleware, requireRole(['super_admin']), factoryController.createFactory);
-router.put('/factories/:id', authMiddleware, requireRole(['super_admin']), factoryController.updateFactory);
-router.delete('/factories/:id', authMiddleware, requireRole(['super_admin']), factoryController.deleteFactory);
+router.post('/factories', authMiddleware, requireRole(['admin']), factoryController.createFactory);
+router.put('/factories/:id', authMiddleware, requireRole(['admin']), factoryController.updateFactory);
+router.delete('/factories/:id', authMiddleware, requireRole(['admin']), factoryController.deleteFactory);
 
 router.get('/departments', authMiddleware, departmentController.getDepartments);
 router.get('/departments/:id', authMiddleware, departmentController.getDepartmentById);
-router.post('/departments', authMiddleware, requireRole(['super_admin', 'compliance_head']), departmentController.createDepartment);
-router.put('/departments/:id', authMiddleware, requireRole(['super_admin', 'compliance_head']), departmentController.updateDepartment);
-router.delete('/departments/:id', authMiddleware, requireRole(['super_admin']), departmentController.deleteDepartment);
+router.post('/departments', authMiddleware, requireRole(['admin']), departmentController.createDepartment);
+router.put('/departments/:id', authMiddleware, requireRole(['admin']), departmentController.updateDepartment);
+router.delete('/departments/:id', authMiddleware, requireRole(['admin']), departmentController.deleteDepartment);
 
 // ==========================================
 // 3. COMPLIANCE STANDARDS & REQUIREMENTS
 // ==========================================
 router.get('/standards', authMiddleware, standardsController.getStandards);
 router.get('/standards/:id', authMiddleware, standardsController.getStandardById);
-router.post('/standards', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager']), standardsController.createStandard);
-router.put('/standards/:id', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager']), standardsController.updateStandard);
-router.delete('/standards/:id', authMiddleware, requireRole(['super_admin', 'compliance_head']), standardsController.deleteStandard);
+router.post('/standards', authMiddleware, requireRole(['admin']), standardsController.createStandard);
+router.put('/standards/:id', authMiddleware, requireRole(['admin']), standardsController.updateStandard);
+router.delete('/standards/:id', authMiddleware, requireRole(['admin']), standardsController.deleteStandard);
 
 router.get('/requirements', authMiddleware, requirementsController.getRequirements);
 router.get('/requirements/:id', authMiddleware, requirementsController.getRequirementById);
-router.post('/requirements', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager']), requirementsController.createRequirement);
-router.put('/requirements/:id', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager']), requirementsController.updateRequirement);
-router.delete('/requirements/:id', authMiddleware, requireRole(['super_admin', 'compliance_head']), requirementsController.deleteRequirement);
-router.post('/requirements/trigger-auto-tasks', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager']), requirementsController.triggerAutoTasks);
+router.post('/requirements', authMiddleware, requireRole(['admin']), requirementsController.createRequirement);
+router.put('/requirements/:id', authMiddleware, requireRole(['admin']), requirementsController.updateRequirement);
+router.delete('/requirements/:id', authMiddleware, requireRole(['admin']), requirementsController.deleteRequirement);
+router.post('/requirements/trigger-auto-tasks', authMiddleware, requireRole(['admin']), requirementsController.triggerAutoTasks);
 
 // ==========================================
 // 4. TASKS
@@ -62,20 +62,20 @@ router.post('/requirements/trigger-auto-tasks', authMiddleware, requireRole(['su
 router.get('/tasks', authMiddleware, tasksController.getTasks);
 router.get('/tasks/my-tasks', authMiddleware, tasksController.getMyTasks);
 router.get('/tasks/:id', authMiddleware, tasksController.getTaskById);
-router.post('/tasks', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'department_manager']), tasksController.createTask);
+router.post('/tasks', authMiddleware, requireRole(['admin', 'supervisor']), tasksController.createTask);
 router.put('/tasks/:id', authMiddleware, tasksController.updateTask);
 router.post('/tasks/:id/start', authMiddleware, tasksController.startTask);
 router.post('/tasks/:id/complete', authMiddleware, tasksController.completeTask);
-router.post('/tasks/auto-schedule', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager']), tasksController.runAutoSchedule);
+router.post('/tasks/auto-schedule', authMiddleware, requireRole(['admin']), tasksController.runAutoSchedule);
 
 // ==========================================
 // 5. AUDITS & CHECKLISTS
 // ==========================================
 router.get('/audits', authMiddleware, auditsController.getAudits);
 router.get('/audits/:id', authMiddleware, auditsController.getAuditById);
-router.post('/audits', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), auditsController.createAudit);
-router.put('/audits/:id/status', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), auditsController.updateAuditStatus);
-router.put('/audits/checklist/:checklist_id', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), auditsController.updateChecklistItem);
+router.post('/audits', authMiddleware, requireRole(['admin', 'auditor']), auditsController.createAudit);
+router.put('/audits/:id/status', authMiddleware, requireRole(['admin', 'auditor']), auditsController.updateAuditStatus);
+router.put('/audits/checklist/:checklist_id', authMiddleware, requireRole(['admin', 'auditor']), auditsController.updateChecklistItem);
 
 // ==========================================
 // 6. NON-CONFORMITIES (NC)
@@ -83,27 +83,27 @@ router.put('/audits/checklist/:checklist_id', authMiddleware, requireRole(['supe
 router.get('/ncs', authMiddleware, ncController.getNCs);
 router.get('/ncs/aging-report', authMiddleware, ncController.getAgingReport);
 router.get('/ncs/:id', authMiddleware, ncController.getNCById);
-router.post('/ncs', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), ncController.createNC);
+router.post('/ncs', authMiddleware, requireRole(['admin', 'auditor']), ncController.createNC);
 router.put('/ncs/:id', authMiddleware, ncController.updateNC);
-router.post('/ncs/:id/close', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), ncController.closeNC);
+router.post('/ncs/:id/close', authMiddleware, requireRole(['admin', 'auditor']), ncController.closeNC);
 
 // ==========================================
 // 7. CORRECTIVE ACTION PLANS (CAP)
 // ==========================================
 router.get('/caps', authMiddleware, capController.getCAPs);
 router.get('/caps/:id', authMiddleware, capController.getCAPById);
-router.post('/caps', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'department_manager', 'department_user']), capController.createCAP);
+router.post('/caps', authMiddleware, requireRole(['admin', 'supervisor']), capController.createCAP);
 router.post('/caps/:id/submit', authMiddleware, capController.submitCAP);
-router.post('/caps/:id/review', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager']), capController.reviewCAP);
+router.post('/caps/:id/review', authMiddleware, requireRole(['admin', 'auditor']), capController.reviewCAP);
 router.post('/caps/:id/submit-evidence', authMiddleware, capController.submitCAPEvidence);
-router.post('/caps/:id/verify', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), capController.verifyCAP);
+router.post('/caps/:id/verify', authMiddleware, requireRole(['admin', 'auditor']), capController.verifyCAP);
 
 // ==========================================
 // 8. EVIDENCE MANAGEMENT
 // ==========================================
 router.post('/evidence/upload', authMiddleware, uploadMiddleware.single('file'), evidenceController.uploadEvidence);
 router.get('/evidence', authMiddleware, evidenceController.getEvidence);
-router.put('/evidence/:id/verify', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), evidenceController.verifyEvidence);
+router.put('/evidence/:id/verify', authMiddleware, requireRole(['admin', 'auditor']), evidenceController.verifyEvidence);
 
 // ==========================================
 // 9. DASHBOARD
@@ -133,9 +133,9 @@ router.get('/reports/export/:type', authMiddleware, reportsController.exportCSV)
 // 12. SETTINGS, CONFIGURATION & AUDIT TRAIL
 // ==========================================
 router.get('/settings/score-config', authMiddleware, settingsController.getScoreConfig);
-router.put('/settings/score-config', authMiddleware, requireRole(['super_admin', 'compliance_head']), settingsController.updateScoreConfig);
+router.put('/settings/score-config', authMiddleware, requireRole(['admin']), settingsController.updateScoreConfig);
 router.get('/settings/escalation-config', authMiddleware, settingsController.getEscalationConfig);
-router.put('/settings/escalation-config', authMiddleware, requireRole(['super_admin', 'compliance_head']), settingsController.updateEscalationConfig);
-router.get('/settings/audit-logs', authMiddleware, requireRole(['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor']), settingsController.getAuditLogs);
+router.put('/settings/escalation-config', authMiddleware, requireRole(['admin']), settingsController.updateEscalationConfig);
+router.get('/settings/audit-logs', authMiddleware, requireRole(['admin', 'auditor']), settingsController.getAuditLogs);
 
 export default router;

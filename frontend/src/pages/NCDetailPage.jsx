@@ -339,6 +339,13 @@ export const NCDetailPage = ({ ncId, onBack, onRefresh }) => {
                       <CheckCircle size={16} /> Auditor Verification (Pass / Fail)
                     </button>
                   )}
+
+                  {['Verification', 'Completed'].includes(ncData.status) && !hasPermission('verify_cap') && (
+                    <div style={{ fontSize: '12.5px', color: '#0369a1', backgroundColor: '#f0f9ff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bae6fd', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Clock size={15} color="#0284c7" />
+                      <span><strong>Auditor Action Required:</strong> Only AUDITOR or ADMIN can conduct field verification and close this Non-Conformity.</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

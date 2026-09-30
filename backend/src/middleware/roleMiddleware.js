@@ -1,6 +1,22 @@
 /**
+ * Normalizes role string to one of the 3 canonical system roles:
+ * - admin
+ * - auditor
+ * - supervisor
+ */
+export const normalizeRole = (role) => {
+  if (!role) return 'supervisor';
+  const r = role.toLowerCase();
+  if (['admin', 'super_admin', 'compliance_head', 'compliance_manager'].includes(r)) return 'admin';
+  if (['auditor', 'internal_auditor', 'viewer'].includes(r)) return 'auditor';
+  if (['supervisor', 'department_manager', 'department_user'].includes(r)) return 'supervisor';
+  return r;
+};
+
+/**
  * Role-Based Access Control (RBAC) Middleware
  * Checks if current user's role is permitted to perform the action
+ * Enforces permissions for: ADMIN, AUDITOR, SUPERVISOR
  */
 export const requireRole = (allowedRoles = []) => {
   return (req, res, next) => {
@@ -8,34 +24,37 @@ export const requireRole = (allowedRoles = []) => {
       return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
 
-    const userRole = req.user.role;
+    const canonicalRole = normalizeRole(req.user.role);
 
-    // Super Admin has universal access
-    if (userRole === 'super_admin') {
+    // ADMIN has universal access
+    if (canonicalRole === 'admin') {
       return next();
     }
 
-    // Array of allowed roles
-    if (allowedRoles.includes(userRole)) {
+    // Map allowed roles to their canonical names
+    const normalizedAllowed = allowedRoles.map(normalizeRole);
+
+    if (normalizedAllowed.includes(canonicalRole)) {
       return next();
     }
 
     return res.status(403).json({
       success: false,
-      message: `Access denied: role '${userRole}' is not authorized to perform this operation. Allowed roles: ${allowedRoles.join(', ')}`
+      message: `Access denied: role '${canonicalRole.toUpperCase()}' is not authorized to perform this operation. Allowed roles: ${normalizedAllowed.map(r => r.toUpperCase()).join(', ')}`
     });
   };
 };
 
 /**
  * Department Access Control Middleware
- * Ensures department users/managers only manipulate their own department records
+ * Ensures supervisors only manipulate their own department records
+ * ADMIN and AUDITOR have factory-wide access
  */
 export const requireDepartmentMatch = (getDeptIdFromReq) => {
   return (req, res, next) => {
-    const userRole = req.user.role;
-    // Management & Auditors have cross-department access
-    if (['super_admin', 'compliance_head', 'compliance_manager', 'internal_auditor', 'viewer'].includes(userRole)) {
+    const canonicalRole = normalizeRole(req.user.role);
+    // ADMIN and AUDITOR have cross-department access
+    if (['admin', 'auditor'].includes(canonicalRole)) {
       return next();
     }
 

@@ -128,46 +128,37 @@ export const initialData = {
 
   roles: [
     {
-      id: "super_admin",
-      name: "Super Admin",
-      description: "Full system administration, factories, departments, standards, users, and system config.",
+      id: "admin",
+      name: "ADMIN",
+      description: "Full system access: Manage users, departments, requirements, audits, NCs and CAPs. View all dashboards and reports.",
       permissions: ["*"]
     },
     {
-      id: "compliance_head",
-      name: "Compliance Head",
-      description: "Factory-wide compliance oversight, audit management, CAP final review/approval, verification and reports.",
-      permissions: ["view:all", "manage:audits", "review:cap", "verify:nc", "manage:standards", "view:reports"]
+      id: "auditor",
+      name: "AUDITOR",
+      description: "Create and conduct audits, complete audit checklists, create NCs, review CAPs and evidence, verify and close NCs, view audit reports.",
+      permissions: [
+        "create:audits",
+        "conduct:audits",
+        "fill:checklists",
+        "create:nc",
+        "review:cap",
+        "verify:evidence",
+        "close:nc",
+        "view:reports"
+      ]
     },
     {
-      id: "compliance_manager",
-      name: "Compliance Manager",
-      description: "Compliance requirements management, task assignments, audits, NC creation, and CAP monitoring.",
-      permissions: ["view:all", "manage:requirements", "assign:tasks", "manage:audits", "create:nc", "review:cap"]
-    },
-    {
-      id: "internal_auditor",
-      name: "Internal Auditor",
-      description: "Conduct audits, complete checklists, log findings, create NCs, and verify corrective action evidence.",
-      permissions: ["create:audits", "fill:checklists", "create:findings", "create:nc", "verify:evidence"]
-    },
-    {
-      id: "department_manager",
-      name: "Department Manager",
-      description: "Oversee department tasks, respond to NCs, formulate CAP, upload evidence, and monitor department compliance.",
-      permissions: ["view:dept_tasks", "complete:tasks", "respond:nc", "create:cap", "upload:evidence"]
-    },
-    {
-      id: "department_user",
-      name: "Department User",
-      description: "View and execute assigned daily/weekly compliance tasks, upload photo evidence, submit for review.",
-      permissions: ["view:assigned_tasks", "complete:assigned_tasks", "upload:evidence"]
-    },
-    {
-      id: "viewer",
-      name: "Viewer",
-      description: "Read-only access to compliance dashboards, analytics, and generated reports.",
-      permissions: ["view:dashboards", "view:reports"]
+      id: "supervisor",
+      name: "SUPERVISOR",
+      description: "View assigned department tasks, complete compliance tasks, respond to NCs, submit CAP and evidence, track assigned issues. Cannot modify system settings or close/verify NCs.",
+      permissions: [
+        "view:tasks",
+        "complete:tasks",
+        "respond:nc",
+        "submit:cap",
+        "upload:evidence"
+      ]
     }
   ],
 
@@ -176,7 +167,7 @@ export const initialData = {
       id: "u1111111-1111-1111-1111-111111111111",
       email: "admin@apexgarments.com",
       full_name: "Kazi Nazrul Islam",
-      role: "super_admin",
+      role: "admin",
       factory_id: "f1111111-1111-1111-1111-111111111111",
       department_id: null,
       phone: "+880 1711-000001",
@@ -185,31 +176,9 @@ export const initialData = {
     },
     {
       id: "u2222222-2222-2222-2222-222222222222",
-      email: "compliance.head@apexgarments.com",
-      full_name: "Dr. Selim Reza",
-      role: "compliance_head",
-      factory_id: "f1111111-1111-1111-1111-111111111111",
-      department_id: null,
-      phone: "+880 1711-000002",
-      avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-      status: "Active"
-    },
-    {
-      id: "u3333333-3333-3333-3333-333333333333",
-      email: "compliance.mgr@apexgarments.com",
-      full_name: "Tanvir Ahmed Chowdhury",
-      role: "compliance_manager",
-      factory_id: "f1111111-1111-1111-1111-111111111111",
-      department_id: null,
-      phone: "+880 1711-000003",
-      avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
-      status: "Active"
-    },
-    {
-      id: "u4444444-4444-4444-4444-444444444444",
-      email: "auditor.internal@apexgarments.com",
+      email: "auditor@apexgarments.com",
       full_name: "Fatima Farhana",
-      role: "internal_auditor",
+      role: "auditor",
       factory_id: "f1111111-1111-1111-1111-111111111111",
       department_id: null,
       phone: "+880 1711-000004",
@@ -217,10 +186,10 @@ export const initialData = {
       status: "Active"
     },
     {
-      id: "u5555555-5555-5555-5555-555555555555",
-      email: "hr.manager@apexgarments.com",
+      id: "u3333333-3333-3333-3333-333333333333",
+      email: "supervisor@apexgarments.com",
       full_name: "Mahmudul Hasan",
-      role: "department_manager",
+      role: "supervisor",
       factory_id: "f1111111-1111-1111-1111-111111111111",
       department_id: "d1111111-1111-1111-1111-111111111111",
       phone: "+880 1711-000005",
@@ -228,10 +197,32 @@ export const initialData = {
       status: "Active"
     },
     {
+      id: "u4444444-4444-4444-4444-444444444444",
+      email: "compliance.head@apexgarments.com",
+      full_name: "Dr. Selim Reza",
+      role: "admin",
+      factory_id: "f1111111-1111-1111-1111-111111111111",
+      department_id: null,
+      phone: "+880 1711-000002",
+      avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      status: "Active"
+    },
+    {
+      id: "u5555555-5555-5555-5555-555555555555",
+      email: "auditor.internal@apexgarments.com",
+      full_name: "Tariqul Islam",
+      role: "auditor",
+      factory_id: "f1111111-1111-1111-1111-111111111111",
+      department_id: null,
+      phone: "+880 1711-234567",
+      avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
+      status: "Active"
+    },
+    {
       id: "u6666666-6666-6666-6666-666666666666",
       email: "ehs.officer@apexgarments.com",
       full_name: "Shahadat Hossain",
-      role: "department_user",
+      role: "supervisor",
       factory_id: "f1111111-1111-1111-1111-111111111111",
       department_id: "d4444444-4444-4444-4444-444444444444",
       phone: "+880 1711-000006",
@@ -240,12 +231,12 @@ export const initialData = {
     },
     {
       id: "u7777777-7777-7777-7777-777777777777",
-      email: "buyer.viewer@globalbrands.com",
-      full_name: "Claire Vance",
-      role: "viewer",
+      email: "hr.manager@apexgarments.com",
+      full_name: "Nusrat Jahan",
+      role: "supervisor",
       factory_id: "f1111111-1111-1111-1111-111111111111",
-      department_id: null,
-      phone: "+44 7700 900123",
+      department_id: "d1111111-1111-1111-1111-111111111111",
+      phone: "+880 1819-987654",
       avatar_url: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150",
       status: "Active"
     }

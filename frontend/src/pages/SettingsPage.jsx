@@ -218,6 +218,25 @@ export const SettingsPage = () => {
         </div>
       )}
 
+      {/* Read-only Alert for Non-Admin roles */}
+      {!canManageSettings && (
+        <div style={{
+          backgroundColor: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          color: '#1e40af',
+          padding: '12px 18px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '13px'
+        }}>
+          <Lock size={18} color="#2563eb" />
+          <span><strong>Read-Only Mode:</strong> Only users with the <strong>ADMIN</strong> role can modify system settings, scoring formulas, or escalation thresholds.</span>
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div style={{
         display: 'flex',

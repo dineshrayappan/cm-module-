@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Shield, Building, Phone, Mail, CheckCircle } from 'lucide-react';
+import { Users, UserPlus, Shield, Building, Phone, Mail, CheckCircle, Check, X } from 'lucide-react';
 import { api } from '../services/api';
 import { StatusBadge } from '../common/StatusBadge';
-import { useAuth, ROLES_LIST } from '../context/AuthContext';
+import { useAuth, ROLES_LIST, normalizeRole } from '../context/AuthContext';
 
 export const UsersPage = () => {
   const { currentRole, switchRole } = useAuth();
+  const canonicalRole = normalizeRole(currentRole);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,47 +26,119 @@ export const UsersPage = () => {
     }
   };
 
+  const ROLE_DETAILS = {
+    admin: {
+      items: [
+        'Manage Users',
+        'Manage Requirements',
+        'Manage Departments',
+        'Manage Audits',
+        'Manage NC/CAP',
+        'Reports & Dashboard'
+      ]
+    },
+    auditor: {
+      items: [
+        'Conduct Audits',
+        'Audit Checklist',
+        'Create NC',
+        'Review CAP',
+        'Verify Evidence',
+        'Close NC'
+      ]
+    },
+    supervisor: {
+      items: [
+        'My Tasks',
+        'Department Compliance',
+        'Respond to NC',
+        'Submit CAP',
+        'Upload Evidence'
+      ]
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Users & Role-Based Access Control</h1>
           <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            System users, role authorization tiers, factory assignments, and security profiles
+            System enforced 3-tier user structure: ADMIN, AUDITOR, and SUPERVISOR
           </p>
         </div>
       </div>
 
-      {/* Role Descriptions Banner */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+      {/* 3 Role Descriptions Banner */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '28px' }}>
         {ROLES_LIST.map((r) => {
-          const isActive = currentRole === r.id;
+          const isActive = canonicalRole === r.id;
+          const details = ROLE_DETAILS[r.id]?.items || [];
           return (
             <div
               key={r.id}
               className="card"
               style={{
-                padding: '16px',
+                padding: '20px',
                 borderTop: `4px solid ${r.color}`,
                 backgroundColor: isActive ? '#f8fafc' : '#ffffff',
-                boxShadow: isActive ? 'var(--shadow-md)' : 'var(--shadow-xs)'
+                boxShadow: isActive ? 'var(--shadow-md)' : 'var(--shadow-xs)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong style={{ fontSize: '14px', color: '#0f172a' }}>{r.label}</strong>
-                {isActive && (
-                  <span style={{ fontSize: '11px', color: r.color, fontWeight: 800, background: `${r.color}20`, padding: '2px 8px', borderRadius: '4px' }}>
-                    Active Persona
-                  </span>
-                )}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '16px', color: '#0f172a' }}>{r.label}</strong>
+                  {isActive ? (
+                    <span style={{ fontSize: '11px', color: r.color, fontWeight: 800, background: `${r.color}20`, padding: '2px 8px', borderRadius: '4px' }}>
+                      Active Role
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      {r.badge}
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', minHeight: '36px' }}>
+                  {r.description}
+                </div>
+
+                {/* User Structure Hierarchy */}
+                <div style={{
+                  marginTop: '14px',
+                  padding: '10px 12px',
+                  backgroundColor: '#f1f5f9',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#334155', marginBottom: '6px' }}>
+                    {r.label} Structure:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {details.map((item, idx) => (
+                      <div key={idx} style={{ fontSize: '11.5px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: r.color, fontWeight: 800 }}>•</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>{r.badge}</div>
+
               <button
-                className="btn btn-outline btn-sm"
+                className={`btn ${isActive ? 'btn-primary' : 'btn-outline'} btn-sm`}
                 onClick={() => switchRole(r.id)}
-                style={{ marginTop: '12px', width: '100%', borderColor: r.color, color: r.color }}
+                style={{
+                  marginTop: '16px',
+                  width: '100%',
+                  borderColor: r.color,
+                  backgroundColor: isActive ? r.color : 'transparent',
+                  color: isActive ? '#ffffff' : r.color
+                }}
               >
-                Switch to this Role
+                {isActive ? 'Current Active Role' : `Switch to ${r.label}`}
               </button>
             </div>
           );
@@ -94,8 +167,9 @@ export const UsersPage = () => {
               </tr>
             ) : (
               users.map((u) => {
-                const roleObj = ROLES_LIST.find(r => r.id === u.role) || { label: u.role, color: '#3b82f6' };
-                const isCurrent = currentRole === u.role;
+                const uCanonical = normalizeRole(u.role);
+                const roleObj = ROLES_LIST.find(r => r.id === uCanonical) || { label: u.role, color: '#3b82f6' };
+                const isCurrent = canonicalRole === uCanonical;
 
                 return (
                   <tr key={u.id} style={{ backgroundColor: isCurrent ? '#f0f9ff' : 'transparent' }}>
@@ -137,10 +211,10 @@ export const UsersPage = () => {
                     <td>
                       <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => switchRole(u.role)}
+                        onClick={() => switchRole(uCanonical)}
                         disabled={isCurrent}
                       >
-                        {isCurrent ? 'Current' : 'Impersonate'}
+                        {isCurrent ? 'Current' : 'Switch Role'}
                       </button>
                     </td>
                   </tr>

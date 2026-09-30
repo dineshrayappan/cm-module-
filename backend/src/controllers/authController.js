@@ -14,11 +14,16 @@ export const authController = {
         user = await db.findOne('profiles', { email });
       } else if (role) {
         user = await db.findOne('profiles', { role });
+        if (!user) {
+          if (role === 'admin') user = await db.findOne('profiles', { role: 'super_admin' }) || await db.findOne('profiles', { role: 'compliance_head' });
+          if (role === 'auditor') user = await db.findOne('profiles', { role: 'internal_auditor' });
+          if (role === 'supervisor') user = await db.findOne('profiles', { role: 'department_manager' }) || await db.findOne('profiles', { role: 'department_user' });
+        }
       }
 
       if (!user) {
-        // Fallback to demo super admin
-        user = await db.findOne('profiles', { role: 'super_admin' });
+        // Fallback to demo admin
+        user = await db.findOne('profiles', { role: 'admin' }) || await db.findOne('profiles', { role: 'super_admin' });
       }
 
       const token = jwt.sign(
@@ -54,11 +59,17 @@ export const authController = {
     }
   },
 
-  // Switch Role (Demo helper to evaluate all roles with 1 click)
+  // Switch Role (Instant switcher between the 3 roles: ADMIN, AUDITOR, SUPERVISOR)
   async switchRole(req, res, next) {
     try {
       const { role } = req.body;
-      const user = await db.findOne('profiles', { role });
+      let user = await db.findOne('profiles', { role });
+
+      if (!user) {
+        if (role === 'admin') user = await db.findOne('profiles', { role: 'super_admin' }) || await db.findOne('profiles', { role: 'compliance_head' });
+        if (role === 'auditor') user = await db.findOne('profiles', { role: 'internal_auditor' });
+        if (role === 'supervisor') user = await db.findOne('profiles', { role: 'department_manager' }) || await db.findOne('profiles', { role: 'department_user' });
+      }
 
       if (!user) {
         return res.status(404).json({ success: false, message: `No profile found for role '${role}'` });
