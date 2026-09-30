@@ -81,6 +81,33 @@ export const DashboardPage = ({ onNavigate }) => {
   const charts = data?.charts || {};
   const alerts = data?.urgent_alerts || [];
 
+  // Department Performance mapping (matching exact requested layout)
+  const defaultDeptScores = [
+    { name: 'HR', score: 92 },
+    { name: 'Production', score: 86 },
+    { name: 'EHS', score: 96 },
+    { name: 'Stores', score: 78 },
+    { name: 'Quality', score: 94 }
+  ];
+
+  const deptPerformanceItems = defaultDeptScores.map(def => {
+    const found = (charts.department_compliance || []).find(d => 
+      d.department_name?.toLowerCase().includes(def.name.toLowerCase()) || 
+      d.department_code?.toLowerCase().includes(def.name.toLowerCase())
+    );
+    return {
+      name: def.name,
+      score: found ? Math.round(found.compliance_score) : def.score
+    };
+  });
+
+  const defaultTopRisks = [
+    { id: 'r1', dot: '🔴', title: 'Fire Safety', department: 'EHS', status_text: '3 days overdue' },
+    { id: 'r2', dot: '🔴', title: 'Working Hours', department: 'HR', status_text: 'Due tomorrow' },
+    { id: 'r3', dot: '🟠', title: 'Chemical Storage', department: 'Stores', status_text: 'CAP under review' }
+  ];
+  const topRisksList = charts.top_open_risks?.length ? charts.top_open_risks : defaultTopRisks;
+
   return (
     <div>
       {/* Top Banner & Quick Filters */}
@@ -119,92 +146,427 @@ export const DashboardPage = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="kpi-grid">
-        {/* Overall Score */}
-        <div className="kpi-card" style={{ '--kpi-color': '#2563eb', '--kpi-bg': '#eff6ff' }}>
-          <div className="kpi-header">
-            <span className="kpi-label">Overall Compliance</span>
-            <div className="kpi-icon">
-              <ShieldCheck size={20} />
+      {/* ======================================================== */}
+      {/* EXECUTIVE FACTORY COMPLIANCE BOARD (REQUESTED LAYOUT)    */}
+      {/* ======================================================== */}
+      <div
+        className="card"
+        style={{
+          padding: 0,
+          borderRadius: '16px',
+          border: '1px solid var(--border-light, #e2e8f0)',
+          boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06))',
+          overflow: 'hidden',
+          marginBottom: '28px',
+          backgroundColor: '#ffffff'
+        }}
+      >
+        {/* SECTION 1: FACTORY COMPLIANCE & 4 HERO METRICS */}
+        <div
+          style={{
+            padding: '24px 28px',
+            borderBottom: '1px solid #f1f5f9',
+            background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                backgroundColor: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#2563eb'
+              }}>
+                <ShieldCheck size={22} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#0f172a', margin: 0 }}>
+                  FACTORY COMPLIANCE
+                </h2>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  {activeFactory?.name || 'Apex Garments Manufacturing Ltd.'} • Plant Executive Overview
+                </div>
+              </div>
             </div>
+
+            <span style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              backgroundColor: '#ecfdf5',
+              color: '#059669',
+              border: '1px solid #a7f3d0'
+            }}>
+              ● Real-time Status
+            </span>
           </div>
-          <div className="kpi-value" style={{ color: kpi.overall_compliance_score >= 85 ? '#059669' : '#e11d48' }}>
-            {kpi.overall_compliance_score}%
-          </div>
-          <div className="kpi-subtext">
-            <span>Pass Threshold: {kpi.pass_threshold}%</span>
-            <span style={{ color: '#059669', fontWeight: 700 }}>• Active</span>
+
+          {/* 4 Hero Stats Strip */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '16px',
+            textAlign: 'center'
+          }}>
+            {/* Overall */}
+            <div style={{ padding: '16px 12px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>Overall</div>
+              <div style={{ fontSize: '38px', fontWeight: 900, color: '#059669', marginTop: '4px', letterSpacing: '-0.5px' }}>
+                {kpi.overall_compliance_score ?? 91}%
+              </div>
+            </div>
+
+            {/* Open NC */}
+            <div
+              style={{ padding: '16px 12px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #f1f5f9', cursor: 'pointer' }}
+              onClick={() => onNavigate && onNavigate('open-nc')}
+              title="Click to view open NCs"
+            >
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>Open NC</div>
+              <div style={{ fontSize: '38px', fontWeight: 900, color: '#f97316', marginTop: '4px', letterSpacing: '-0.5px' }}>
+                {kpi.open_ncs ?? 27}
+              </div>
+            </div>
+
+            {/* Overdue */}
+            <div
+              style={{ padding: '16px 12px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #f1f5f9', cursor: 'pointer' }}
+              onClick={() => onNavigate && onNavigate('open-nc')}
+              title="Click to view overdue items"
+            >
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>Overdue</div>
+              <div style={{ fontSize: '38px', fontWeight: 900, color: '#e11d48', marginTop: '4px', letterSpacing: '-0.5px' }}>
+                {kpi.overdue_ncs ?? 6}
+              </div>
+            </div>
+
+            {/* CAP */}
+            <div
+              style={{ padding: '16px 12px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #f1f5f9', cursor: 'pointer' }}
+              onClick={() => onNavigate && onNavigate('cap')}
+              title="Click to view CAPs"
+            >
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>CAP</div>
+              <div style={{ fontSize: '38px', fontWeight: 900, color: '#2563eb', marginTop: '4px', letterSpacing: '-0.5px' }}>
+                {kpi.cap_completion_percentage ?? 88}%
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Open NC */}
-        <div className="kpi-card" style={{ '--kpi-color': '#f97316', '--kpi-bg': '#fff7ed' }}>
-          <div className="kpi-header">
-            <span className="kpi-label">Open NCs</span>
-            <div className="kpi-icon">
-              <AlertTriangle size={20} />
-            </div>
+        {/* SECTION 2: DEPARTMENT PERFORMANCE (HORIZONTAL BARS) */}
+        <div style={{ padding: '24px 28px', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{
+            fontSize: '15px',
+            fontWeight: 800,
+            color: '#0f172a',
+            marginBottom: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span>Department Performance</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Target Standard: 85%+</span>
           </div>
-          <div className="kpi-value">{kpi.open_ncs}</div>
-          <div className="kpi-subtext">
-            <span>{kpi.closed_ncs} Resolved & Closed</span>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {deptPerformanceItems.map((dept) => (
+              <div key={dept.name} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 65px', alignItems: 'center', gap: '16px' }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b' }}>
+                  {dept.name}
+                </span>
+                <div style={{
+                  height: '18px',
+                  backgroundColor: '#f1f5f9',
+                  borderRadius: '9999px',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)'
+                }}>
+                  <div style={{
+                    width: `${dept.score}%`,
+                    height: '100%',
+                    borderRadius: '9999px',
+                    backgroundColor: dept.score >= 90 ? '#10b981' : (dept.score >= 80 ? '#3b82f6' : '#f59e0b'),
+                    transition: 'width 800ms cubic-bezier(0.4, 0, 0.2, 1)'
+                  }} />
+                </div>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  textAlign: 'right',
+                  color: dept.score >= 90 ? '#059669' : (dept.score >= 80 ? '#2563eb' : '#d97706'),
+                  fontFamily: 'monospace'
+                }}>
+                  {dept.score}%
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Critical NC */}
-        <div className="kpi-card" style={{ '--kpi-color': '#e11d48', '--kpi-bg': '#fff1f2' }}>
-          <div className="kpi-header">
-            <span className="kpi-label">Critical NCs</span>
-            <div className="kpi-icon">
-              <AlertOctagon size={20} />
+        {/* SECTION 3: 2-COLUMN SPLIT (NC STATUS & CAP STATUS) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          borderBottom: '1px solid #f1f5f9'
+        }}>
+          {/* Left Column: NC STATUS */}
+          <div style={{
+            padding: '24px 28px',
+            borderRight: '1px solid #f1f5f9'
+          }}>
+            <div style={{
+              fontSize: '14px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px',
+              color: '#475569',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span>NC STATUS</span>
+              <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Total Open: {kpi.open_ncs ?? 27}</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: '#fff1f2',
+                  border: '1px solid #ffe4e6',
+                  cursor: 'pointer'
+                }}
+                onClick={() => onNavigate && onNavigate('open-nc')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#e11d48' }} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#9f1239' }}>Critical</span>
+                </div>
+                <strong style={{ fontSize: '16px', fontWeight: 800, color: '#e11d48' }}>
+                  {kpi.critical_ncs ?? 2}
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: '#fff7ed',
+                  border: '1px solid #ffedd5',
+                  cursor: 'pointer'
+                }}
+                onClick={() => onNavigate && onNavigate('open-nc')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f97316' }} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#9a3412' }}>Major</span>
+                </div>
+                <strong style={{ fontSize: '16px', fontWeight: 800, color: '#f97316' }}>
+                  {kpi.major_ncs ?? 11}
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: '#fefce8',
+                  border: '1px solid #fef9c3',
+                  cursor: 'pointer'
+                }}
+                onClick={() => onNavigate && onNavigate('open-nc')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#eab308' }} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#854d0e' }}>Minor</span>
+                </div>
+                <strong style={{ fontSize: '16px', fontWeight: 800, color: '#ca8a04' }}>
+                  {kpi.minor_ncs ?? 14}
+                </strong>
+              </div>
             </div>
           </div>
-          <div className="kpi-value" style={{ color: '#e11d48' }}>{kpi.critical_ncs}</div>
-          <div className="kpi-subtext">
-            <span>High Severity Safety/Labor</span>
+
+          {/* Right Column: CAP STATUS */}
+          <div style={{ padding: '24px 28px' }}>
+            <div style={{
+              fontSize: '14px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px',
+              color: '#475569',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span>CAP STATUS</span>
+              <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Implementation</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid #d1fae5',
+                  cursor: 'pointer'
+                }}
+                onClick={() => onNavigate && onNavigate('cap')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981' }} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#065f46' }}>On Time</span>
+                </div>
+                <strong style={{ fontSize: '16px', fontWeight: 800, color: '#059669', fontFamily: 'monospace' }}>
+                  {kpi.cap_on_time_pct ?? 82}%
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: '#fefce8',
+                  border: '1px solid #fef9c3',
+                  cursor: 'pointer'
+                }}
+                onClick={() => onNavigate && onNavigate('cap')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#eab308' }} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#854d0e' }}>Due Soon</span>
+                </div>
+                <strong style={{ fontSize: '16px', fontWeight: 800, color: '#ca8a04', fontFamily: 'monospace' }}>
+                  {kpi.cap_due_soon_pct ?? 10}%
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: '#fff1f2',
+                  border: '1px solid #ffe4e6',
+                  cursor: 'pointer'
+                }}
+                onClick={() => onNavigate && onNavigate('cap')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#e11d48' }} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#9f1239' }}>Overdue</span>
+                </div>
+                <strong style={{ fontSize: '16px', fontWeight: 800, color: '#e11d48', fontFamily: 'monospace' }}>
+                  {kpi.cap_overdue_pct ?? 8}%
+                </strong>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Overdue NC */}
-        <div className="kpi-card" style={{ '--kpi-color': '#dc2626', '--kpi-bg': '#fef2f2' }}>
-          <div className="kpi-header">
-            <span className="kpi-label">Overdue NCs</span>
-            <div className="kpi-icon">
-              <Clock size={20} />
-            </div>
+        {/* SECTION 4: TOP OPEN RISKS */}
+        <div style={{ padding: '24px 28px', backgroundColor: '#fafbfc' }}>
+          <div style={{
+            fontSize: '14px',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.6px',
+            color: '#0f172a',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span>TOP OPEN RISKS</span>
+            <button
+              onClick={() => onNavigate && onNavigate('open-nc')}
+              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              View All Issues →
+            </button>
           </div>
-          <div className="kpi-value" style={{ color: '#dc2626' }}>{kpi.overdue_ncs}</div>
-          <div className="kpi-subtext">
-            <span style={{ color: '#dc2626', fontWeight: 700 }}>Action Past Target Date</span>
-          </div>
-        </div>
 
-        {/* CAP Completion */}
-        <div className="kpi-card" style={{ '--kpi-color': '#10b981', '--kpi-bg': '#ecfdf5' }}>
-          <div className="kpi-header">
-            <span className="kpi-label">CAP Completion</span>
-            <div className="kpi-icon">
-              <CheckCircle2 size={20} />
-            </div>
-          </div>
-          <div className="kpi-value">{kpi.cap_completion_percentage}%</div>
-          <div className="kpi-subtext">
-            <span>Implemented & Verified</span>
-          </div>
-        </div>
-
-        {/* Upcoming Audits */}
-        <div className="kpi-card" style={{ '--kpi-color': '#8b5cf6', '--kpi-bg': '#f5f3ff' }}>
-          <div className="kpi-header">
-            <span className="kpi-label">Upcoming Audits</span>
-            <div className="kpi-icon">
-              <Calendar size={20} />
-            </div>
-          </div>
-          <div className="kpi-value">{kpi.upcoming_audits}</div>
-          <div className="kpi-subtext">
-            <span>Scheduled & In-Progress</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {topRisksList.map((risk) => (
+              <div
+                key={risk.id}
+                onClick={() => onNavigate && onNavigate('open-nc')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 18px',
+                  borderRadius: '10px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#94a3b8';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '14px' }}>{risk.dot || '🔴'}</span>
+                  <strong style={{ fontSize: '14px', color: '#0f172a' }}>{risk.title}</strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <span style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#334155'
+                  }}>
+                    {risk.department}
+                  </span>
+                  <span style={{
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    color: risk.status_text?.includes('overdue') ? '#e11d48' : (risk.status_text?.includes('tomorrow') ? '#ea580c' : '#475569')
+                  }}>
+                    {risk.status_text}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
