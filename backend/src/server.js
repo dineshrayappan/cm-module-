@@ -33,14 +33,16 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(uploadsDir));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+const handleHealth = (req, res) => {
   res.json({
     status: 'healthy',
     system: 'Garment Compliance Management System Backend',
     timestamp: new Date().toISOString(),
     uptime_seconds: process.uptime()
   });
-});
+};
+app.get('/health', handleHealth);
+app.get('/api/health', handleHealth);
 
 // API Routes
 app.use('/api', apiRouter);
@@ -56,19 +58,23 @@ app.use((req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
-// Periodic background check for task and NC overdue escalations (Every 10 minutes)
-setInterval(async () => {
-  try {
-    await escalationService.processEscalations();
-  } catch (err) {
-    console.error('[Escalation Cron Error]', err.message);
-  }
-}, 10 * 60 * 1000);
+// Periodic background check for task and NC overdue escalations (Every 10 minutes when running as persistent daemon)
+if (!process.env.VERCEL) {
+  setInterval(async () => {
+    try {
+      await escalationService.processEscalations();
+    } catch (err) {
+      console.error('[Escalation Cron Error]', err.message);
+    }
+  }, 10 * 60 * 1000);
 
-app.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`🚀 Garment Compliance Backend running on port ${PORT}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 REST API base: http://localhost:${PORT}/api`);
-  console.log(`=======================================================`);
-});
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`🚀 Garment Compliance Backend running on port ${PORT}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔗 REST API base: http://localhost:${PORT}/api`);
+    console.log(`=======================================================`);
+  });
+}
+
+export default app;
