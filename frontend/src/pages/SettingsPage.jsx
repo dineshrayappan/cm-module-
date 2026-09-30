@@ -12,7 +12,12 @@ import {
   Database,
   Lock,
   ChevronRight,
-  Info
+  Info,
+  Bell,
+  Mail,
+  MessageSquare,
+  Send,
+  Calendar
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -38,10 +43,15 @@ export const SettingsPage = () => {
 
   // Escalation config state
   const [escalationConfig, setEscalationConfig] = useState({
-    reminder_days_before: 2,
+    advance_reminder_days: 7,
+    urgent_reminder_days: 3,
+    due_today_alert: true,
+    overdue_alert: true,
     escalation_level_1_days: 3,
     escalation_level_2_days: 7,
-    escalation_level_3_days: 14
+    enable_in_app: true,
+    enable_email: true,
+    enable_whatsapp_sms: true
   });
 
   // Audit logs state
@@ -435,97 +445,192 @@ export const SettingsPage = () => {
         <div className="grid-layout grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
             <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '6px', color: 'var(--text-primary)' }}>
-              Automated Overdue Escalation Rules
+              Automated 6-Stage Notification & Escalation Rules
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Configure hierarchical notification triggers for unresolved Non-Conformities and overdue CAPs. The background cron evaluator audits all open records against these parameters.
+              Configure automated reminders and multi-stage escalation thresholds for tasks and Non-Conformities across In-App, Email, and WhatsApp/SMS.
             </p>
 
             <form onSubmit={handleSaveEscalationConfig}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
-                  <label className="form-label" style={{ fontWeight: 600 }}>
-                    Advance Due Date Reminder (Days Prior)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    className="form-control"
-                    value={escalationConfig.reminder_days_before}
-                    onChange={(e) => setEscalationConfig({ ...escalationConfig, reminder_days_before: e.target.value })}
-                    disabled={!canManageSettings}
-                    required
-                  />
-                  <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                    Sends gentle prompt to Assigned Responsible Person before task/NC deadline. Default: 2 days
-                  </small>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                
+                {/* Pre-Due Date Reminders */}
+                <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Clock size={16} color="#0284c7" />
+                    Pre-Deadline Reminders
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '12px' }}>
+                        Advance Reminder (Days Prior)
+                      </label>
+                      <input
+                        type="number"
+                        min="4"
+                        max="30"
+                        className="form-control"
+                        value={escalationConfig.advance_reminder_days}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, advance_reminder_days: e.target.value })}
+                        disabled={!canManageSettings}
+                        required
+                      />
+                      <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                        Default: 7 days before due date
+                      </small>
+                    </div>
+
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '12px' }}>
+                        Urgent Reminder (Days Prior)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        className="form-control"
+                        value={escalationConfig.urgent_reminder_days}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, urgent_reminder_days: e.target.value })}
+                        disabled={!canManageSettings}
+                        required
+                      />
+                      <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                        Default: 3 days before due date
+                      </small>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="form-label" style={{ fontWeight: 600 }}>
-                    Escalation Level 1: Department Manager (Days Overdue)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    className="form-control"
-                    value={escalationConfig.escalation_level_1_days}
-                    onChange={(e) => setEscalationConfig({ ...escalationConfig, escalation_level_1_days: e.target.value })}
-                    disabled={!canManageSettings}
-                    required
-                  />
-                  <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                    Alerts respective Department Manager when responsible user fails to submit CAP. Default: 3 days
-                  </small>
+                {/* Deadline & Immediate Overdue Alerts */}
+                <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertTriangle size={16} color="#f59e0b" />
+                    Deadline & Overdue Triggers
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(escalationConfig.due_today_alert)}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, due_today_alert: e.target.checked })}
+                        disabled={!canManageSettings}
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span><strong>Due Date Alert:</strong> Send "Due Today" high-priority notification on the deadline</span>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(escalationConfig.overdue_alert)}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, overdue_alert: e.target.checked })}
+                        disabled={!canManageSettings}
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span><strong>Overdue Notice:</strong> Flip status to Overdue and dispatch immediate overdue notice (+1 day)</span>
+                    </label>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="form-label" style={{ fontWeight: 600 }}>
-                    Escalation Level 2: Compliance Manager (Days Overdue)
-                  </label>
-                  <input
-                    type="number"
-                    min="2"
-                    max="45"
-                    className="form-control"
-                    value={escalationConfig.escalation_level_2_days}
-                    onChange={(e) => setEscalationConfig({ ...escalationConfig, escalation_level_2_days: e.target.value })}
-                    disabled={!canManageSettings}
-                    required
-                  />
-                  <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                    Elevates ticket to central Compliance Manager for intervention. Default: 7 days
-                  </small>
+                {/* Overdue Escalation Thresholds */}
+                <div style={{ padding: '14px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldCheck size={16} color="#dc2626" />
+                    Managerial Escalation Hierarchy
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '12px' }}>
+                        Level 1: Dept Manager (Days Overdue)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="14"
+                        className="form-control"
+                        value={escalationConfig.escalation_level_1_days}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, escalation_level_1_days: e.target.value })}
+                        disabled={!canManageSettings}
+                        required
+                      />
+                      <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                        Default: 3 days overdue
+                      </small>
+                    </div>
+
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '12px' }}>
+                        Level 2: Compliance Head (Days Overdue)
+                      </label>
+                      <input
+                        type="number"
+                        min="4"
+                        max="30"
+                        className="form-control"
+                        value={escalationConfig.escalation_level_2_days}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, escalation_level_2_days: e.target.value })}
+                        disabled={!canManageSettings}
+                        required
+                      />
+                      <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                        Default: 7 days overdue
+                      </small>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="form-label" style={{ fontWeight: 600 }}>
-                    Escalation Level 3: Compliance Head / Factory GM (Days Overdue)
-                  </label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="60"
-                    className="form-control"
-                    value={escalationConfig.escalation_level_3_days}
-                    onChange={(e) => setEscalationConfig({ ...escalationConfig, escalation_level_3_days: e.target.value })}
-                    disabled={!canManageSettings}
-                    required
-                  />
-                  <small style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                    High-priority alert to Executive Compliance Head and Factory Director. Default: 14 days
-                  </small>
+                {/* Notification Delivery Channels */}
+                <div style={{ padding: '14px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#166534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Send size={16} color="#16a34a" />
+                    Active Delivery Channels
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(escalationConfig.enable_in_app)}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, enable_in_app: e.target.checked })}
+                        disabled={!canManageSettings}
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <Bell size={14} color="#0284c7" />
+                      <span>In-App Center</span>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(escalationConfig.enable_email)}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, enable_email: e.target.checked })}
+                        disabled={!canManageSettings}
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <Mail size={14} color="#059669" />
+                      <span>HTML Email</span>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(escalationConfig.enable_whatsapp_sms)}
+                        onChange={(e) => setEscalationConfig({ ...escalationConfig, enable_whatsapp_sms: e.target.checked })}
+                        disabled={!canManageSettings}
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <MessageSquare size={14} color="#25D366" />
+                      <span>WhatsApp / SMS</span>
+                    </label>
+                  </div>
                 </div>
 
                 {canManageSettings ? (
-                  <button type="submit" className="btn btn-primary" style={{ marginTop: '10px' }} disabled={loading}>
+                  <button type="submit" className="btn btn-primary" style={{ marginTop: '6px' }} disabled={loading}>
                     <Save size={16} />
-                    Save Escalation Parameters
+                    Save Escalation & Notification Parameters
                   </button>
                 ) : (
-                  <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Lock size={14} /> Only Super Admins can alter escalation rules.
                   </div>
                 )}
@@ -535,48 +640,126 @@ export const SettingsPage = () => {
 
           {/* Workflow Diagram */}
           <div className="card">
-            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px', color: 'var(--text-primary)' }}>
-              Escalation Hierarchy Pipeline
-            </h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                Automated 6-Stage Notification Flow
+              </h4>
+              <span className="badge badge-info" style={{ fontSize: '11px', padding: '4px 8px' }}>
+                Multi-Channel Active
+              </span>
+            </div>
+            
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              The background compliance engine continually evaluates all active tasks and open Non-Conformities through this exact automated lifecycle:
+            </p>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* STAGE 1 */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0 }}>
+                  -{escalationConfig.advance_reminder_days}d
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>{escalationConfig.advance_reminder_days} Days Before: Advance Reminder</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Prompt sent to Responsible Assignee with checklist criteria & CAP preparation guidance.
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 2 */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0 }}>
+                  -{escalationConfig.urgent_reminder_days}d
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    {escalationConfig.urgent_reminder_days} Days Before: Urgent Reminder
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Urgent notification sent to prompt evidence upload and completion prior to deadline.
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 3 */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0 }}>
                   0d
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>Due Date Reached</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Status flips to Overdue; in-app notification sent to Responsible Person.</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    Due Date: Due Today Alert
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Final deadline countdown alert sent on the exact due date.
+                  </div>
                 </div>
               </div>
 
+              {/* STAGE 4 */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#ffedd5', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0 }}>
+                  +1d
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    After Due Date: Overdue Notice
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Record status automatically flips to "Overdue"; urgent alert sent to responsible person.
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 5 */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#ffe4e6', color: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0 }}>
                   +{escalationConfig.escalation_level_1_days}d
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>Level 1: Department Manager</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Department head alerted to enforce CAP submission.</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    {escalationConfig.escalation_level_1_days} Days Overdue: Escalate to Department Manager
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Department Head alerted to intervene, review delay reasons, and enforce immediate action.
+                  </div>
                 </div>
               </div>
 
+              {/* STAGE 6 */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#ffedd5', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0 }}>
                   +{escalationConfig.escalation_level_2_days}d
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>Level 2: Compliance Manager</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Compliance office intervenes; risk score adjusted.</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    {escalationConfig.escalation_level_2_days} Days Overdue: Escalate to Compliance Head
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Executive escalation to Compliance Head & GM. Automatically flags factory scorecard.
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
-                  +{escalationConfig.escalation_level_3_days}d
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>Level 3: Compliance Head / GM</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Executive sanction level; flagged on factory master scorecard.</div>
-                </div>
+            {/* Channels summary */}
+            <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                Supported Notification Channels:
+              </div>
+              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '11px', color: '#64748b' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Bell size={12} color="#0284c7" /> In-App Notification Center
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Mail size={12} color="#059669" /> Responsive HTML Corporate Email
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <MessageSquare size={12} color="#25D366" /> WhatsApp & SMS Webhook
+                </span>
               </div>
             </div>
           </div>

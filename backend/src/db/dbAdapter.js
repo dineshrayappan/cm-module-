@@ -292,7 +292,19 @@ export const db = {
   },
 
   // In-app Notification utility
-  async sendNotification({ userId, role, title, message, type = 'task', priority = 'Normal', link = '' }) {
+  async sendNotification({
+    userId,
+    role,
+    title,
+    message,
+    type = 'task',
+    priority = 'Normal',
+    link = '',
+    stage = 'general',
+    entity_type = null,
+    entity_id = null,
+    entity_code = ''
+  }) {
     const notif = {
       user_id: userId || null,
       role: role || null,
@@ -301,6 +313,10 @@ export const db = {
       type,
       priority,
       link,
+      stage,
+      entity_type,
+      entity_id,
+      entity_code,
       read_status: false,
       created_at: new Date().toISOString()
     };

@@ -111,11 +111,14 @@ router.put('/evidence/:id/verify', authMiddleware, requireRole(['super_admin', '
 router.get('/dashboard/summary', authMiddleware, dashboardController.getDashboardSummary);
 
 // ==========================================
-// 10. NOTIFICATIONS
+// 10. NOTIFICATIONS & MULTI-CHANNEL DISPATCH
 // ==========================================
 router.get('/notifications', authMiddleware, notificationsController.getNotifications);
 router.put('/notifications/:id/read', authMiddleware, notificationsController.markAsRead);
 router.put('/notifications/mark-all-read', authMiddleware, notificationsController.markAllAsRead);
+router.get('/notifications/outbound-log', authMiddleware, notificationsController.getOutboundLogs);
+router.post('/notifications/trigger-cycle', authMiddleware, notificationsController.triggerCycle);
+router.post('/notifications/test-dispatch', authMiddleware, notificationsController.testDispatch);
 
 // ==========================================
 // 11. REPORTS

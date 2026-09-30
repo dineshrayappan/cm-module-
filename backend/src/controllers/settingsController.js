@@ -73,15 +73,21 @@ export const settingsController = {
     }
   },
 
-  // Get Escalation Configuration
+  // Get Escalation & Notification Configuration
   async getEscalationConfig(req, res, next) {
     try {
       const configs = await db.find('escalationConfigurations', { is_active: true });
       const current = configs[0] || {
-        reminder_days_before: 2,
-        escalation_level_1_days: 3,
-        escalation_level_2_days: 7,
-        escalation_level_3_days: 14
+        advance_reminder_days: 7,     // 7 days before due date
+        urgent_reminder_days: 3,      // 3 days before due date
+        due_today_alert: true,        // Due date alert
+        overdue_alert: true,          // Immediate overdue alert
+        escalation_level_1_days: 3,   // 3 days overdue -> Department Manager
+        escalation_level_2_days: 7,   // 7 days overdue -> Compliance Head
+        enable_in_app: true,
+        enable_email: true,
+        enable_whatsapp_sms: true,
+        is_active: true
       };
       res.json({ success: true, config: current });
     } catch (err) {
@@ -89,34 +95,41 @@ export const settingsController = {
     }
   },
 
-  // Update Escalation Configuration
+  // Update Escalation & Notification Configuration
   async updateEscalationConfig(req, res, next) {
     try {
       const {
-        reminder_days_before,
-        escalation_level_1_days,
-        escalation_level_2_days,
-        escalation_level_3_days
+        advance_reminder_days = 7,
+        urgent_reminder_days = 3,
+        due_today_alert = true,
+        overdue_alert = true,
+        escalation_level_1_days = 3,
+        escalation_level_2_days = 7,
+        enable_in_app = true,
+        enable_email = true,
+        enable_whatsapp_sms = true
       } = req.body;
 
       const configs = await db.find('escalationConfigurations', { is_active: true });
       let updated = null;
 
+      const payload = {
+        advance_reminder_days: Number(advance_reminder_days),
+        urgent_reminder_days: Number(urgent_reminder_days),
+        due_today_alert: Boolean(due_today_alert),
+        overdue_alert: Boolean(overdue_alert),
+        escalation_level_1_days: Number(escalation_level_1_days),
+        escalation_level_2_days: Number(escalation_level_2_days),
+        enable_in_app: Boolean(enable_in_app),
+        enable_email: Boolean(enable_email),
+        enable_whatsapp_sms: Boolean(enable_whatsapp_sms),
+        is_active: true
+      };
+
       if (configs.length > 0) {
-        updated = await db.updateById('escalationConfigurations', configs[0].id, {
-          reminder_days_before: Number(reminder_days_before),
-          escalation_level_1_days: Number(escalation_level_1_days),
-          escalation_level_2_days: Number(escalation_level_2_days),
-          escalation_level_3_days: Number(escalation_level_3_days)
-        });
+        updated = await db.updateById('escalationConfigurations', configs[0].id, payload);
       } else {
-        updated = await db.insert('escalationConfigurations', {
-          reminder_days_before: Number(reminder_days_before),
-          escalation_level_1_days: Number(escalation_level_1_days),
-          escalation_level_2_days: Number(escalation_level_2_days),
-          escalation_level_3_days: Number(escalation_level_3_days),
-          is_active: true
-        });
+        updated = await db.insert('escalationConfigurations', payload);
       }
 
       await db.logAction({
@@ -126,12 +139,12 @@ export const settingsController = {
         action: 'UPDATE_ESCALATION_CONFIG',
         entityType: 'SETTINGS',
         entityId: updated.id,
-        entityName: 'Escalation Thresholds',
+        entityName: 'Escalation & Notification Hierarchy',
         newValue: updated,
         req
       });
 
-      res.json({ success: true, message: 'Escalation configuration updated successfully', config: updated });
+      res.json({ success: true, message: 'Automated notification & escalation configuration updated successfully', config: updated });
     } catch (err) {
       next(err);
     }

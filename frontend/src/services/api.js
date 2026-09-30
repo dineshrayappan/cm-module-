@@ -168,11 +168,17 @@ export const api = {
     }
   },
 
-  // Notifications
+  // Notifications & Multi-Channel Alerts
   notifications: {
     getAll: () => request('/notifications'),
     markRead: (id) => request(`/notifications/${id}/read`, { method: 'PUT' }),
-    markAllRead: () => request('/notifications/mark-all-read', { method: 'PUT' })
+    markAllRead: () => request('/notifications/mark-all-read', { method: 'PUT' }),
+    getOutboundLogs: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return request(`/notifications/outbound-log${query ? `?${query}` : ''}`);
+    },
+    triggerCycle: () => request('/notifications/trigger-cycle', { method: 'POST' }),
+    testDispatch: (data) => request('/notifications/test-dispatch', { method: 'POST', body: JSON.stringify(data) })
   },
 
   // Reports
