@@ -28,6 +28,9 @@ export const UsersPage = () => {
 
   const ROLE_DETAILS = {
     admin: {
+      username: 'admin',
+      password: 'admin123',
+      email: 'admin@apexgarments.com',
       items: [
         'Manage Users',
         'Manage Requirements',
@@ -38,6 +41,9 @@ export const UsersPage = () => {
       ]
     },
     auditor: {
+      username: 'auditor',
+      password: 'auditor123',
+      email: 'auditor@apexgarments.com',
       items: [
         'Conduct Audits',
         'Audit Checklist',
@@ -48,6 +54,9 @@ export const UsersPage = () => {
       ]
     },
     supervisor: {
+      username: 'supervisor',
+      password: 'supervisor123',
+      email: 'supervisor@apexgarments.com',
       items: [
         'My Tasks',
         'Department Compliance',
@@ -69,11 +78,12 @@ export const UsersPage = () => {
         </div>
       </div>
 
-      {/* 3 Role Descriptions Banner */}
+      {/* 3 Role Descriptions Banner with Login Credentials */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '28px' }}>
         {ROLES_LIST.map((r) => {
           const isActive = canonicalRole === r.id;
-          const details = ROLE_DETAILS[r.id]?.items || [];
+          const roleInfo = ROLE_DETAILS[r.id] || { items: [] };
+          const details = roleInfo.items || [];
           return (
             <div
               key={r.id}
@@ -105,9 +115,31 @@ export const UsersPage = () => {
                   {r.description}
                 </div>
 
+                {/* Login Credentials Box */}
+                <div style={{
+                  marginTop: '12px',
+                  padding: '10px 12px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '6px',
+                  border: `1px solid ${r.color}40`,
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                }}>
+                  <div style={{ fontSize: '10.5px', fontWeight: 800, textTransform: 'uppercase', color: r.color, marginBottom: '6px' }}>
+                    🔑 Standard Credentials:
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#334155' }}>
+                    <span>Username:</span>
+                    <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{roleInfo.username}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#334155', marginTop: '3px' }}>
+                    <span>Password:</span>
+                    <strong style={{ color: '#047857', fontFamily: 'monospace' }}>{roleInfo.password}</strong>
+                  </div>
+                </div>
+
                 {/* User Structure Hierarchy */}
                 <div style={{
-                  marginTop: '14px',
+                  marginTop: '12px',
                   padding: '10px 12px',
                   backgroundColor: '#f1f5f9',
                   borderRadius: '6px',
@@ -150,12 +182,12 @@ export const UsersPage = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>User Name</th>
+              <th>Full Name</th>
+              <th>Username</th>
               <th>Email</th>
+              <th>Password</th>
               <th>Assigned Role</th>
               <th>Department</th>
-              <th>Factory</th>
-              <th>Contact Phone</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
@@ -183,7 +215,17 @@ export const UsersPage = () => {
                         <strong style={{ color: 'var(--text-main)' }}>{u.full_name}</strong>
                       </div>
                     </td>
+                    <td>
+                      <code style={{ color: '#2563eb', fontWeight: 700, backgroundColor: '#eff6ff', padding: '3px 8px', borderRadius: '4px' }}>
+                        {u.username || uCanonical}
+                      </code>
+                    </td>
                     <td>{u.email}</td>
+                    <td>
+                      <code style={{ color: '#059669', fontWeight: 700, backgroundColor: '#ecfdf5', padding: '3px 8px', borderRadius: '4px' }}>
+                        {u.password || `${u.username || uCanonical}123`}
+                      </code>
+                    </td>
                     <td>
                       <span
                         style={{
@@ -203,8 +245,6 @@ export const UsersPage = () => {
                       </span>
                     </td>
                     <td>{u.department_name || 'Cross-Department'}</td>
-                    <td>{u.factory_name || 'Default Factory'}</td>
-                    <td style={{ fontSize: '13px', color: '#475569' }}>{u.phone || '—'}</td>
                     <td>
                       <StatusBadge status={u.status || 'Active'} />
                     </td>

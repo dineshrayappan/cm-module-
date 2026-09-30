@@ -165,6 +165,8 @@ export const initialData = {
   profiles: [
     {
       id: "u1111111-1111-1111-1111-111111111111",
+      username: "admin",
+      password: "admin123",
       email: "admin@apexgarments.com",
       full_name: "Kazi Nazrul Islam",
       role: "admin",
@@ -176,6 +178,8 @@ export const initialData = {
     },
     {
       id: "u2222222-2222-2222-2222-222222222222",
+      username: "auditor",
+      password: "auditor123",
       email: "auditor@apexgarments.com",
       full_name: "Fatima Farhana",
       role: "auditor",
@@ -187,6 +191,8 @@ export const initialData = {
     },
     {
       id: "u3333333-3333-3333-3333-333333333333",
+      username: "supervisor",
+      password: "supervisor123",
       email: "supervisor@apexgarments.com",
       full_name: "Mahmudul Hasan",
       role: "supervisor",
@@ -198,6 +204,8 @@ export const initialData = {
     },
     {
       id: "u4444444-4444-4444-4444-444444444444",
+      username: "compliance.head",
+      password: "admin123",
       email: "compliance.head@apexgarments.com",
       full_name: "Dr. Selim Reza",
       role: "admin",
@@ -209,6 +217,8 @@ export const initialData = {
     },
     {
       id: "u5555555-5555-5555-5555-555555555555",
+      username: "auditor.internal",
+      password: "auditor123",
       email: "auditor.internal@apexgarments.com",
       full_name: "Tariqul Islam",
       role: "auditor",
@@ -220,6 +230,8 @@ export const initialData = {
     },
     {
       id: "u6666666-6666-6666-6666-666666666666",
+      username: "ehs.officer",
+      password: "supervisor123",
       email: "ehs.officer@apexgarments.com",
       full_name: "Shahadat Hossain",
       role: "supervisor",
@@ -231,6 +243,8 @@ export const initialData = {
     },
     {
       id: "u7777777-7777-7777-7777-777777777777",
+      username: "hr.manager",
+      password: "supervisor123",
       email: "hr.manager@apexgarments.com",
       full_name: "Nusrat Jahan",
       role: "supervisor",
