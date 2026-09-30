@@ -228,10 +228,10 @@ export const Sidebar = ({ activePage, setActivePage }) => {
             }}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {currentUser?.full_name || 'Active User'}
             </div>
-            <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               Role: <strong style={{ color: activeRoleObj.color }}>{activeRoleObj.label}</strong>
             </div>
           </div>
