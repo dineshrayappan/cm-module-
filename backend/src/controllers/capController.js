@@ -132,12 +132,16 @@ export const capController = {
       await db.logAction({
         userId: req.user?.id,
         userEmail: req.user?.email,
+        userName: req.user?.full_name,
         userRole: req.user?.role,
         action: 'CREATE_CAP',
+        actionLabel: 'CAP formulated',
         entityType: 'CAP',
         entityId: newCAP.id,
+        relatedNcId: newCAP.nc_id,
         entityName: newCAP.cap_code,
         newValue: newCAP,
+        details: `Corrective Action Plan formulated for ${nc?.nc_number || 'NC'}`,
         req
       });
 
@@ -152,6 +156,10 @@ export const capController = {
     try {
       const cap = await db.findById('correctiveActions', req.params.id);
       if (!cap) return res.status(404).json({ success: false, message: 'CAP not found' });
+
+      const isResubmit = cap.status === 'Rejected';
+      const actionCode = isResubmit ? 'RESUBMIT_CAP' : 'SUBMIT_CAP';
+      const actionLabel = isResubmit ? 'HR resubmitted CAP' : 'HR submitted CAP';
 
       const updated = await db.updateById('correctiveActions', cap.id, {
         status: 'Submitted'
@@ -176,13 +184,17 @@ export const capController = {
       await db.logAction({
         userId: req.user?.id,
         userEmail: req.user?.email,
+        userName: req.user?.full_name,
         userRole: req.user?.role,
-        action: 'SUBMIT_CAP',
+        action: actionCode,
+        actionLabel,
         entityType: 'CAP',
         entityId: cap.id,
+        relatedNcId: cap.nc_id,
         entityName: cap.cap_code,
         oldValue: { status: cap.status },
         newValue: { status: 'Submitted' },
+        details: isResubmit ? `CAP reworked and resubmitted by HR/Supervisor` : `Initial CAP submitted by HR/Supervisor`,
         req
       });
 
@@ -242,13 +254,17 @@ export const capController = {
       await db.logAction({
         userId: req.user?.id,
         userEmail: req.user?.email,
+        userName: req.user?.full_name,
         userRole: req.user?.role,
         action: action === 'approve' ? 'APPROVE_CAP' : 'REJECT_CAP',
+        actionLabel: action === 'approve' ? 'Auditor approved CAP' : 'Auditor rejected CAP',
         entityType: 'CAP',
         entityId: cap.id,
+        relatedNcId: cap.nc_id,
         entityName: cap.cap_code,
         oldValue: { status: cap.status },
         newValue: { status: newCapStatus, comments },
+        details: action === 'approve' ? 'CAP approved by auditor/compliance manager' : `CAP rejected by auditor: "${comments}"`,
         req
       });
 
@@ -297,6 +313,23 @@ export const capController = {
         link: `/verification`
       });
 
+      await db.logAction({
+        userId: req.user?.id,
+        userEmail: req.user?.email,
+        userName: req.user?.full_name,
+        userRole: req.user?.role,
+        action: 'SUBMIT_FOR_VERIFICATION',
+        actionLabel: 'CAP submitted for verification',
+        entityType: 'CAP',
+        entityId: cap.id,
+        relatedNcId: cap.nc_id,
+        entityName: cap.cap_code,
+        oldValue: { status: cap.status },
+        newValue: { status: 'Completed', nc_status: 'Verification' },
+        details: 'Evidence attached. Submitted for field auditor inspection.',
+        req
+      });
+
       res.json({ success: true, message: 'CAP submitted for auditor verification', corrective_action: updated });
     } catch (err) {
       next(err);
@@ -332,15 +365,37 @@ export const capController = {
         await db.logAction({
           userId: req.user?.id,
           userEmail: req.user?.email,
+          userName: req.user?.full_name,
           userRole: req.user?.role,
-          action: 'VERIFY_CAP_PASS',
+          action: 'VERIFY_EVIDENCE',
+          actionLabel: 'Auditor verified evidence',
           entityType: 'CAP',
           entityId: cap.id,
+          relatedNcId: cap.nc_id,
           entityName: cap.cap_code,
           oldValue: { status: cap.status },
           newValue: { status: 'Verified', nc_status: 'Closed' },
+          details: `Field verification PASSED. ${verification_notes || 'All requirements satisfied.'}`,
           req
         });
+
+        await db.logAction({
+          userId: req.user?.id,
+          userEmail: req.user?.email,
+          userName: req.user?.full_name,
+          userRole: req.user?.role,
+          action: 'CLOSE_NC',
+          actionLabel: 'NC closed',
+          entityType: 'NC',
+          entityId: cap.nc_id,
+          relatedNcId: cap.nc_id,
+          entityName: nc?.nc_number || 'NC',
+          oldValue: { status: nc?.status || 'Verification' },
+          newValue: { status: 'Closed' },
+          details: 'Non-conformity officially closed upon verified CAP implementation.',
+          req
+        });
+
 
         await db.sendNotification({
           userId: cap.responsible_person_id,

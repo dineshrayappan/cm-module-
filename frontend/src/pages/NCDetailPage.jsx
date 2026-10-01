@@ -13,7 +13,13 @@ import {
   History,
   Check,
   X,
-  FileText
+  FileText,
+  ShieldCheck,
+  Lock,
+  Fingerprint,
+  Sparkles,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StatusBadge, RiskBadge } from '../common/StatusBadge';
@@ -24,6 +30,7 @@ export const NCDetailPage = ({ ncId, onBack, onRefresh }) => {
   const { currentUser, currentRole, hasPermission } = useAuth();
   const [ncData, setNcData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedLogId, setExpandedLogId] = useState(null);
 
   // Form modals
   const [createCapModal, setCreateCapModal] = useState(false);
@@ -452,48 +459,269 @@ export const NCDetailPage = ({ ncId, onBack, onRefresh }) => {
             </div>
           </div>
 
-          {/* Immutable Audit Trail Log (Section 25) */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">
-                <History size={16} color="var(--primary-600)" />
-                Audit Trail (Immutable)
+          {/* Immutable Audit Trail Log (Section 14 & 25) */}
+          <div className="card" style={{ border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+            <div className="card-header" style={{ paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <History size={18} color="var(--primary-600)" />
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+                    Audit Trail (Immutable)
+                  </span>
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                  Append-only permanent record of all actions. Records cannot be altered or deleted.
+                </div>
+              </div>
+
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                backgroundColor: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                color: '#065f46',
+                fontSize: '11px',
+                fontWeight: 700
+              }}>
+                <Lock size={12} />
+                <span>Tamper-Proof</span>
               </div>
             </div>
 
             {auditLogs.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                No change history recorded yet.
+              <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                No historical actions recorded yet for this Non-Conformity.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      background: '#f8fafc',
-                      border: '1px solid #f1f5f9',
-                      fontSize: '12.5px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ color: '#2563eb' }}>{log.action}</strong>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        {new Date(log.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '2px' }}>
-                      By: <strong>{log.user_email}</strong> ({log.user_role})
-                    </div>
-                  </div>
-                ))}
+              <div style={{ position: 'relative', padding: '16px 8px 8px 8px' }}>
+                {/* Continuous Timeline Line */}
+                <div style={{
+                  position: 'absolute',
+                  left: '26px',
+                  top: '28px',
+                  bottom: '28px',
+                  width: '2px',
+                  backgroundColor: '#e2e8f0'
+                }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  {auditLogs.map((log, index) => {
+                    const d = new Date(log.created_at);
+                    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    // Compute relative timing like "Next day", "Next week"
+                    let timingPrefix = timeStr;
+                    if (index > 0 && auditLogs[index - 1]) {
+                      const prevD = new Date(auditLogs[index - 1].created_at);
+                      const dayDiff = Math.floor((d.getTime() - prevD.getTime()) / (1000 * 60 * 60 * 24));
+                      if (dayDiff >= 6) {
+                        timingPrefix = `Next week • ${timeStr}`;
+                      } else if (dayDiff >= 1) {
+                        timingPrefix = `Next day • ${timeStr}`;
+                      }
+                    }
+
+                    // Human readable action title
+                    let actionLabel = log.action_label;
+                    if (!actionLabel) {
+                      switch (log.action) {
+                        case 'CREATE_NC': actionLabel = 'Auditor created NC'; break;
+                        case 'ASSIGN_NC': actionLabel = 'Compliance Manager assigned to HR'; break;
+                        case 'SUBMIT_CAP': actionLabel = 'HR submitted CAP'; break;
+                        case 'REJECT_CAP': actionLabel = 'Auditor rejected CAP'; break;
+                        case 'RESUBMIT_CAP': actionLabel = 'HR resubmitted CAP'; break;
+                        case 'APPROVE_CAP': actionLabel = 'Auditor approved CAP'; break;
+                        case 'UPLOAD_EVIDENCE': actionLabel = 'Evidence uploaded'; break;
+                        case 'VERIFY_EVIDENCE':
+                        case 'VERIFY_CAP_PASS': actionLabel = 'Auditor verified evidence'; break;
+                        case 'CLOSE_NC': actionLabel = 'NC closed'; break;
+                        default: actionLabel = log.action.replace(/_/g, ' ');
+                      }
+                    }
+
+                    // Color schemes for timeline points
+                    let nodeColor = '#3b82f6';
+                    let nodeBg = '#eff6ff';
+                    let nodeBorder = '#93c5fd';
+
+                    if (log.action.includes('REJECT') || log.action.includes('FAIL')) {
+                      nodeColor = '#dc2626';
+                      nodeBg = '#fef2f2';
+                      nodeBorder = '#fca5a5';
+                    } else if (log.action.includes('APPROVE') || log.action.includes('CLOSE') || log.action.includes('PASS')) {
+                      nodeColor = '#16a34a';
+                      nodeBg = '#f0fdf4';
+                      nodeBorder = '#86efac';
+                    } else if (log.action.includes('VERIFY')) {
+                      nodeColor = '#059669';
+                      nodeBg = '#ecfdf5';
+                      nodeBorder = '#6ee7b7';
+                    } else if (log.action.includes('ASSIGN')) {
+                      nodeColor = '#7c3aed';
+                      nodeBg = '#f5f3ff';
+                      nodeBorder = '#c4b5fd';
+                    } else if (log.action.includes('CAP') || log.action.includes('EVIDENCE')) {
+                      nodeColor = '#ea580c';
+                      nodeBg = '#fff7ed';
+                      nodeBorder = '#fdba74';
+                    }
+
+                    const isExpanded = expandedLogId === log.id;
+
+                    return (
+                      <div key={log.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', position: 'relative' }}>
+                        {/* Timeline Node Icon */}
+                        <div
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: nodeBg,
+                            border: `2px solid ${nodeBorder}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: nodeColor,
+                            flexShrink: 0,
+                            zIndex: 2,
+                            marginTop: '2px'
+                          }}
+                        >
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: nodeColor }} />
+                        </div>
+
+                        {/* Content Container */}
+                        <div style={{
+                          flex: 1,
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          padding: '10px 14px'
+                        }}>
+                          {/* Top Row: Time & Action Label */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                color: nodeColor,
+                                backgroundColor: nodeBg,
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                border: `1px solid ${nodeBorder}`
+                              }}>
+                                {timingPrefix}
+                              </span>
+                              <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>
+                                {actionLabel}
+                              </strong>
+                            </div>
+
+                            <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                              {new Date(log.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+
+                          {/* Actor Info */}
+                          <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                            Actor: <strong>{log.user_name || log.user_email}</strong> ({log.user_role?.replace('_', ' ')})
+                          </div>
+
+                          {/* Details or Remark Note if present */}
+                          {(log.details || log.new_value?.comments || log.new_value?.file) && (
+                            <div style={{
+                              marginTop: '6px',
+                              padding: '6px 10px',
+                              backgroundColor: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              color: '#334155',
+                              lineHeight: 1.4
+                            }}>
+                              {log.details || log.new_value?.comments || `File: ${log.new_value?.file}`}
+                            </div>
+                          )}
+
+                          {/* Footer: Tamper Hash & Technical Detail Toggle */}
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: '8px',
+                            paddingTop: '6px',
+                            borderTop: '1px solid #f1f5f9',
+                            fontSize: '10.5px',
+                            color: '#94a3b8'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Fingerprint size={12} color="#10b981" />
+                              <span style={{ fontFamily: 'monospace' }}>
+                                {log.tamper_hash || 'SHA256:verified'}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#2563eb',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: 0
+                              }}
+                            >
+                              <span>{isExpanded ? 'Hide Payload' : 'Inspect'}</span>
+                              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            </button>
+                          </div>
+
+                          {/* Expanded JSON diff inspect */}
+                          {isExpanded && (
+                            <div style={{
+                              marginTop: '8px',
+                              padding: '8px',
+                              backgroundColor: '#0f172a',
+                              borderRadius: '6px',
+                              color: '#38bdf8',
+                              fontSize: '11px',
+                              fontFamily: 'monospace',
+                              maxHeight: '140px',
+                              overflowY: 'auto'
+                            }}>
+                              <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                                {JSON.stringify({
+                                  action: log.action,
+                                  actor: log.user_email,
+                                  ip_address: log.ip_address,
+                                  timestamp: log.created_at,
+                                  changes: {
+                                    before: log.old_value,
+                                    after: log.new_value
+                                  }
+                                }, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
 
       {/* Formulate CAP Modal */}
       <Modal

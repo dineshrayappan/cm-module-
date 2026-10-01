@@ -142,11 +142,13 @@ export const api = {
       return request(`/ncs${query ? `?${query}` : ''}`);
     },
     getById: (id) => request(`/ncs/${id}`),
+    getAuditTrail: (id) => request(`/ncs/${id}/audit-trail`),
     create: (data) => request('/ncs', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => request(`/ncs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     close: (id) => request(`/ncs/${id}/close`, { method: 'POST' }),
     getAgingReport: () => request('/ncs/aging-report')
   },
+
 
   // Corrective Action Plans (CAP)
   caps: {

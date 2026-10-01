@@ -83,9 +83,11 @@ router.put('/audits/checklist/:checklist_id', authMiddleware, requireRole(['admi
 router.get('/ncs', authMiddleware, ncController.getNCs);
 router.get('/ncs/aging-report', authMiddleware, ncController.getAgingReport);
 router.get('/ncs/:id', authMiddleware, ncController.getNCById);
+router.get('/ncs/:id/audit-trail', authMiddleware, ncController.getNCAuditTrail);
 router.post('/ncs', authMiddleware, requireRole(['admin', 'auditor']), ncController.createNC);
 router.put('/ncs/:id', authMiddleware, ncController.updateNC);
 router.post('/ncs/:id/close', authMiddleware, requireRole(['admin', 'auditor']), ncController.closeNC);
+
 
 // ==========================================
 // 7. CORRECTIVE ACTION PLANS (CAP)

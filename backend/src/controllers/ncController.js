@@ -97,7 +97,15 @@ export const ncController = {
       const audit = nc.audit_id ? await db.findById('audits', nc.audit_id) : null;
       const cap = await db.findOne('correctiveActions', { nc_id: nc.id });
       const evidenceList = await db.find('evidence', { related_nc_id: nc.id });
-      const auditLogs = await db.find('auditLogs', { entity_id: nc.id });
+      
+      // Fetch full chronological audit trail across NC, CAP, and Evidence
+      const allLogs = await db.find('auditLogs', {});
+      const relatedIds = new Set([nc.id, cap?.id, ...evidenceList.map(e => e.id)].filter(Boolean));
+      const auditLogs = allLogs.filter(log => 
+        relatedIds.has(log.entity_id) || 
+        log.related_nc_id === nc.id || 
+        log.entity_name === nc.nc_number
+      ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
       const now = new Date();
       const ageDays = Math.max(0, Math.floor((now.getTime() - new Date(nc.created_date).getTime()) / (1000 * 60 * 60 * 24)));
@@ -117,6 +125,7 @@ export const ncController = {
           audit_trail: auditLogs
         }
       });
+
     } catch (err) {
       next(err);
     }
@@ -195,12 +204,16 @@ export const ncController = {
       await db.logAction({
         userId: req.user?.id,
         userEmail: req.user?.email,
+        userName: req.user?.full_name,
         userRole: req.user?.role,
         action: 'CREATE_NC',
+        actionLabel: 'Auditor created NC',
         entityType: 'NC',
         entityId: newNC.id,
+        relatedNcId: newNC.id,
         entityName: newNC.nc_number,
         newValue: newNC,
+        details: `Non-Conformity ${newNC.nc_number} created with severity '${newNC.severity}' by auditor`,
         req
       });
 
@@ -231,16 +244,24 @@ export const ncController = {
 
       const updated = await db.updateById('nonConformities', req.params.id, updateData);
 
+      const isAssignmentChange = updateData.responsible_name && updateData.responsible_name !== oldNC.responsible_name;
+      const actionCode = isAssignmentChange ? 'ASSIGN_NC' : 'UPDATE_NC';
+      const actionLabel = isAssignmentChange ? `Compliance Manager assigned to ${updateData.responsible_name}` : 'NC details updated';
+
       await db.logAction({
         userId: req.user?.id,
         userEmail: req.user?.email,
+        userName: req.user?.full_name,
         userRole: req.user?.role,
-        action: 'UPDATE_NC',
+        action: actionCode,
+        actionLabel,
         entityType: 'NC',
         entityId: updated.id,
+        relatedNcId: updated.id,
         entityName: updated.nc_number,
         oldValue: oldNC,
         newValue: updated,
+        details: isAssignmentChange ? `Ownership assigned to ${updateData.responsible_name}` : 'Record parameters modified',
         req
       });
 
@@ -274,15 +295,20 @@ export const ncController = {
       await db.logAction({
         userId: req.user?.id,
         userEmail: req.user?.email,
+        userName: req.user?.full_name,
         userRole: req.user?.role,
         action: 'CLOSE_NC',
+        actionLabel: 'NC closed',
         entityType: 'NC',
         entityId: nc.id,
+        relatedNcId: nc.id,
         entityName: nc.nc_number,
         oldValue: { status: nc.status },
         newValue: { status: 'Closed', closed_at: updated.closed_at },
+        details: `Non-Conformity ${nc.nc_number} officially closed upon verified CAP implementation`,
         req
       });
+
 
       await db.sendNotification({
         userId: nc.responsible_person_id,
@@ -351,5 +377,34 @@ export const ncController = {
     } catch (err) {
       next(err);
     }
+  },
+
+  // Get complete chronological immutable audit trail for an NC
+  async getNCAuditTrail(req, res, next) {
+    try {
+      const nc = await db.findById('nonConformities', req.params.id);
+      if (!nc) return res.status(404).json({ success: false, message: 'Non-Conformity not found' });
+
+      // Supervisor check: ensure department matches if supervisor
+      if (req.user?.role === 'supervisor' && req.user?.department_id && nc.department_id !== req.user.department_id) {
+        return res.status(403).json({ success: false, message: 'Access denied to this Non-Conformity audit trail' });
+      }
+
+      const cap = await db.findOne('correctiveActions', { nc_id: nc.id });
+      const evidenceList = await db.find('evidence', { related_nc_id: nc.id });
+      const relatedIds = new Set([nc.id, cap?.id, ...evidenceList.map(e => e.id)].filter(Boolean));
+
+      const allLogs = await db.find('auditLogs', {});
+      const trail = allLogs.filter(log => 
+        relatedIds.has(log.entity_id) || 
+        log.related_nc_id === nc.id || 
+        log.entity_name === nc.nc_number
+      ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      res.json({ success: true, count: trail.length, audit_trail: trail });
+    } catch (err) {
+      next(err);
+    }
   }
 };
+

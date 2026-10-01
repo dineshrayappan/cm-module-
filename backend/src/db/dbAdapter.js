@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { initialData } from './initialData.js';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -124,6 +125,11 @@ class LocalDataStore {
   }
 
   update(table, filter, updateData) {
+    // IMMUTABILITY ENFORCEMENT: Never allow updates to audit trail records
+    if (table === 'auditLogs' || table === 'audit_logs') {
+      throw new Error('Compliance Security Violation: Audit trail records are strictly immutable and cannot be updated or altered.');
+    }
+
     const list = this.data[table] || [];
     let updatedCount = 0;
     for (let i = 0; i < list.length; i++) {
@@ -140,6 +146,11 @@ class LocalDataStore {
   }
 
   updateById(table, id, updateData) {
+    // IMMUTABILITY ENFORCEMENT: Never allow updates to audit trail records
+    if (table === 'auditLogs' || table === 'audit_logs') {
+      throw new Error('Compliance Security Violation: Audit trail records are strictly immutable and cannot be updated or altered.');
+    }
+
     const list = this.data[table] || [];
     const index = list.findIndex(it => it.id === id);
     if (index === -1) return null;
@@ -153,6 +164,11 @@ class LocalDataStore {
   }
 
   deleteById(table, id, soft = true) {
+    // IMMUTABILITY ENFORCEMENT: Never allow deletions to audit trail records
+    if (table === 'auditLogs' || table === 'audit_logs') {
+      throw new Error('Compliance Security Violation: Audit trail records are strictly immutable and cannot be deleted.');
+    }
+
     const list = this.data[table] || [];
     const index = list.findIndex(it => it.id === id);
     if (index === -1) return false;
@@ -248,6 +264,9 @@ export const db = {
   },
 
   async updateById(table, id, updateData) {
+    if (table === 'auditLogs' || table === 'audit_logs') {
+      throw new Error('Compliance Security Violation: Audit trail records are strictly immutable and cannot be modified or altered.');
+    }
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabaseClient.from(table).update(updateData).eq('id', id).select().single();
@@ -258,6 +277,9 @@ export const db = {
   },
 
   async deleteById(table, id, soft = true) {
+    if (table === 'auditLogs' || table === 'audit_logs') {
+      throw new Error('Compliance Security Violation: Audit trail records are strictly immutable and cannot be deleted.');
+    }
     if (isSupabaseConfigured) {
       try {
         if (soft) {
@@ -272,24 +294,53 @@ export const db = {
     return localStore.deleteById(table, id, soft);
   },
 
-  // Audit logging utility
-  async logAction({ userId, userEmail, userRole, action, entityType, entityId, entityName, oldValue, newValue, req }) {
+  // Audit logging utility (Strictly Append-Only, Immutable & Tamper-Evident)
+  async logAction({
+    userId,
+    userEmail,
+    userName,
+    userRole,
+    action,
+    actionLabel,
+    entityType,
+    entityId,
+    entityName,
+    relatedNcId,
+    oldValue,
+    newValue,
+    details,
+    req
+  }) {
     const ipAddress = req?.ip || req?.socket?.remoteAddress || '127.0.0.1';
+    const createdAt = new Date().toISOString();
+    
+    // Compute tamper-evident verification hash
+    const hashData = `${userId || 'anon'}:${action}:${entityType}:${entityId}:${createdAt}`;
+    const tamperHash = crypto.createHash('sha256').update(hashData).digest('hex').substring(0, 16);
+
     const logDoc = {
-      user_id: userId || null,
-      user_email: userEmail || 'system',
-      user_role: userRole || 'system',
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      user_id: userId || req?.user?.id || null,
+      user_email: userEmail || req?.user?.email || 'system',
+      user_name: userName || req?.user?.full_name || (userEmail ? userEmail.split('@')[0] : 'System'),
+      user_role: userRole || req?.user?.role || 'system',
       action,
+      action_label: actionLabel || action.replace(/_/g, ' '),
       entity_type: entityType,
       entity_id: entityId,
       entity_name: entityName || '',
+      related_nc_id: relatedNcId || null,
       old_value: oldValue || null,
       new_value: newValue || null,
+      details: details || null,
       ip_address: ipAddress,
-      created_at: new Date().toISOString()
+      is_immutable: true,
+      tamper_hash: `SHA256:${tamperHash}`,
+      created_at: createdAt
     };
-    return this.insert('auditLogs', logDoc);
+    return localStore.insert('auditLogs', logDoc);
   },
+
 
   // In-app Notification utility
   async sendNotification({

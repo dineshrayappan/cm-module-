@@ -109,12 +109,16 @@ export const evidenceController = {
       await db.logAction({
         userId: req.user?.id,
         userEmail: req.user?.email,
+        userName: req.user?.full_name,
         userRole: req.user?.role,
         action: 'UPLOAD_EVIDENCE',
+        actionLabel: 'Evidence uploaded',
         entityType: 'EVIDENCE',
         entityId: evidenceDoc.id,
+        relatedNcId: related_nc_id || null,
         entityName: fileName,
         newValue: evidenceDoc,
+        details: `Evidence file '${fileName}' uploaded for ${related_nc_id ? 'NC ' + related_nc_id : 'task'}`,
         req
       });
 
@@ -147,9 +151,27 @@ export const evidenceController = {
       const updated = await db.updateById('evidence', req.params.id, {
         verification_status: status || 'Verified'
       });
+
+      await db.logAction({
+        userId: req.user?.id,
+        userEmail: req.user?.email,
+        userName: req.user?.full_name,
+        userRole: req.user?.role,
+        action: 'VERIFY_EVIDENCE',
+        actionLabel: `Auditor verified evidence`,
+        entityType: 'EVIDENCE',
+        entityId: updated.id,
+        relatedNcId: updated.related_nc_id || null,
+        entityName: updated.file_name,
+        newValue: { verification_status: updated.verification_status },
+        details: `Evidence ${updated.file_name} marked as ${updated.verification_status} by auditor`,
+        req
+      });
+
       res.json({ success: true, message: 'Evidence verification status updated', evidence: updated });
     } catch (err) {
       next(err);
     }
   }
 };
+
