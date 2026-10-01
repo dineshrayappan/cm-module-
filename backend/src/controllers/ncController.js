@@ -29,9 +29,9 @@ export const ncController = {
       if (factory_id) filter.factory_id = factory_id;
       if (search) filter.nc_number = `LIKE:${search}`;
 
-      // Enforce Supervisor Department Isolation
-      if (req.user && req.user.role === 'supervisor' && req.user.department_id) {
-        filter.department_id = req.user.department_id;
+      // Enforce Supervisor Personal Assignment Isolation
+      if (req.user && req.user.role === 'supervisor') {
+        filter.responsible_person_id = req.user.id;
       }
 
       const ncs = await db.find('nonConformities', filter, { sortBy: 'created_date', sortOrder: 'desc' });

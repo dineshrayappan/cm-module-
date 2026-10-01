@@ -26,9 +26,9 @@ export const capController = {
         };
       });
 
-      // Enforce Supervisor Department Isolation
-      if (req.user && req.user.role === 'supervisor' && req.user.department_id) {
-        enriched = enriched.filter(c => c.department_id === req.user.department_id);
+      // Enforce Supervisor Personal Assignment Isolation
+      if (req.user && req.user.role === 'supervisor') {
+        enriched = enriched.filter(c => c.responsible_person_id === req.user.id);
       }
 
       res.json({ success: true, count: enriched.length, corrective_actions: enriched });

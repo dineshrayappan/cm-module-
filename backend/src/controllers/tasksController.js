@@ -17,9 +17,9 @@ export const tasksController = {
       if (factory_id) filter.factory_id = factory_id;
       if (search) filter.title = `LIKE:${search}`;
 
-      // Enforce Supervisor Department Isolation
-      if (req.user && req.user.role === 'supervisor' && req.user.department_id) {
-        filter.department_id = req.user.department_id;
+      // Enforce Strict Personal Assignment for Supervisor
+      if (req.user && req.user.role === 'supervisor') {
+        filter.assigned_user_id = req.user.id;
       }
 
       const tasks = await db.find('tasks', filter, { sortBy: 'due_date', sortOrder: 'asc' });
@@ -62,9 +62,9 @@ export const tasksController = {
       const requirements = await db.find('requirements', {});
       const now = new Date().toISOString().split('T')[0];
 
-      // If department user or manager, filter by their tasks
-      if (['department_user', 'department_manager'].includes(userRole)) {
-        allTasks = allTasks.filter(t => t.assigned_user_id === userId || (deptId && t.department_id === deptId));
+      // If department user, manager, or supervisor, filter strictly by their assigned tasks
+      if (['department_user', 'department_manager', 'supervisor'].includes(userRole)) {
+        allTasks = allTasks.filter(t => t.assigned_user_id === userId);
       }
 
       const enriched = allTasks.map(t => {
