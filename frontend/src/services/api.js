@@ -4,18 +4,30 @@ const BASE_URL = '/api';
 
 export const getAuthToken = () => localStorage.getItem('tex_auth_token');
 export const setAuthToken = (token) => localStorage.setItem('tex_auth_token', token);
-export const removeAuthToken = () => localStorage.removeItem('tex_auth_token');
+export const removeAuthToken = () => {
+  localStorage.removeItem('tex_auth_token');
+  localStorage.removeItem('tex_active_role');
+  localStorage.removeItem('tex_user');
+};
 
-export const getActiveRole = () => localStorage.getItem('tex_active_role') || 'super_admin';
+export const getActiveRole = () => localStorage.getItem('tex_active_role') || null;
 export const setActiveRole = (role) => localStorage.setItem('tex_active_role', role);
+
+export const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem('tex_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+};
+export const setStoredUser = (user) => localStorage.setItem('tex_user', JSON.stringify(user));
 
 async function request(endpoint, options = {}) {
   const token = getAuthToken();
-  const activeRole = getActiveRole();
 
   const headers = {
     'Content-Type': 'application/json',
-    'x-user-role': activeRole,
     ...options.headers
   };
 

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth, normalizeRole } from './context/AuthContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { LoginPage } from './pages/LoginPage';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
 // Pages
 import { DashboardPage } from './pages/DashboardPage';
@@ -18,11 +20,94 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
 
+// Allowed page sets per role
+const ROLE_ALLOWED_PAGES = {
+  admin: [
+    'dashboard',
+    'standards',
+    'requirements',
+    'tasks',
+    'audits',
+    'audit-exec',
+    'open-nc',
+    'cap',
+    'verification',
+    'closed-nc',
+    'ncs',
+    'nc-detail',
+    'departments',
+    'reports',
+    'notifications',
+    'users',
+    'settings'
+  ],
+  auditor: [
+    'dashboard',
+    'audits',
+    'audit-exec',
+    'open-nc',
+    'cap',
+    'verification',
+    'closed-nc',
+    'ncs',
+    'nc-detail',
+    'reports',
+    'notifications'
+  ],
+  supervisor: [
+    'dashboard',
+    'tasks',
+    'departments',
+    'open-nc',
+    'cap',
+    'verification',
+    'nc-detail',
+    'notifications'
+  ]
+};
+
 function MainAppShell() {
+  const { currentUser, currentRole, isAuthenticated, loading } = useAuth();
+  const canonicalRole = normalizeRole(currentRole);
+
   const [activePage, setActivePage] = useState('dashboard');
   const [selectedNcId, setSelectedNcId] = useState(null);
   const [selectedAuditId, setSelectedAuditId] = useState(null);
   const [ncTab, setNcTab] = useState('open');
+
+  // Verify page validity whenever role or user changes
+  useEffect(() => {
+    if (canonicalRole) {
+      const allowed = ROLE_ALLOWED_PAGES[canonicalRole] || ['dashboard'];
+      if (!allowed.includes(activePage)) {
+        setActivePage('dashboard');
+      }
+    }
+  }, [canonicalRole]);
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f8fafc',
+        color: '#64748b',
+        fontSize: '14px',
+        fontWeight: 600
+      }}>
+        Loading Workspace...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !currentUser) {
+    return <LoginPage />;
+  }
+
+  const allowedPages = ROLE_ALLOWED_PAGES[canonicalRole] || ['dashboard'];
+  const isPageAllowed = allowedPages.includes(activePage);
 
   const handleNavigate = (page) => {
     if (typeof page === 'string' && page.startsWith('nc-detail-')) {
@@ -45,6 +130,11 @@ function MainAppShell() {
         setNcTab('verification');
         setActivePage('verification');
       } else if (page === 'closed-nc') {
+        // Block supervisor from viewing closed-nc if attempted
+        if (canonicalRole === 'supervisor') {
+          setActivePage('dashboard');
+          return;
+        }
         setNcTab('closed');
         setActivePage('closed-nc');
       } else if (page === 'checklists') {
@@ -53,6 +143,11 @@ function MainAppShell() {
         setNcTab('open');
         setActivePage('open-nc');
       } else {
+        // If navigating to a restricted page, don't allow
+        if (!allowedPages.includes(page)) {
+          setActivePage('dashboard');
+          return;
+        }
         setActivePage(page);
       }
     }
@@ -61,6 +156,35 @@ function MainAppShell() {
   };
 
   const renderCurrentPage = () => {
+    if (!isPageAllowed) {
+      return (
+        <div style={{
+          padding: '40px',
+          textAlign: 'center',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #fee2e2',
+          margin: '24px'
+        }}>
+          <ShieldAlert size={48} color="#ef4444" style={{ margin: '0 auto 16px' }} />
+          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#991b1b', marginBottom: '8px' }}>
+            Access Restricted
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '14px', maxWidth: '460px', margin: '0 auto 20px' }}>
+            Your role (<strong>{canonicalRole?.toUpperCase()}</strong>) does not have access permissions for this section.
+          </p>
+          <button
+            onClick={() => setActivePage('dashboard')}
+            className="btn btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <ArrowLeft size={16} />
+            <span>Return to {canonicalRole?.toUpperCase()} Dashboard</span>
+          </button>
+        </div>
+      );
+    }
+
     switch (activePage) {
       case 'dashboard':
         return <DashboardPage onNavigate={handleNavigate} />;
@@ -160,3 +284,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

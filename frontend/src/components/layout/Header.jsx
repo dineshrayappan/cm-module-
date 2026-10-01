@@ -7,20 +7,23 @@ import {
   Sparkles,
   ExternalLink,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from 'lucide-react';
-import { useAuth, ROLES_LIST } from '../../context/AuthContext';
+import { useAuth, ROLES_LIST, normalizeRole } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
 export const Header = ({ onNavigate }) => {
   const {
     currentUser,
     currentRole,
-    switchRole,
+    logout,
     factories,
     activeFactory,
     setActiveFactory
   } = useAuth();
+  const canonicalRole = normalizeRole(currentRole);
+  const activeRoleObj = ROLES_LIST.find(r => r.id === canonicalRole) || ROLES_LIST[0];
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -125,37 +128,39 @@ export const Header = ({ onNavigate }) => {
         )}
       </div>
 
-      {/* Right: Role Switcher, Auto Generator, Notifications, Profile */}
+      {/* Right: Actions, Role Badge, Notifications, Profile, Logout */}
       <div className="header-right">
-        {/* Quick Task Generator Button */}
-        <button
-          className="btn btn-outline btn-sm"
-          onClick={handleTriggerAutoScheduler}
-          disabled={isGenerating}
-          title="Simulate recurring task engine and overdue escalation checks"
-        >
-          <RefreshCw size={14} className={isGenerating ? 'spin-icon' : ''} />
-          <span>{isGenerating ? 'Running Engine...' : 'Run Auto Schedule'}</span>
-        </button>
+        {/* Quick Task Generator Button (Admin Only) */}
+        {canonicalRole === 'admin' && (
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={handleTriggerAutoScheduler}
+            disabled={isGenerating}
+            title="Simulate recurring task engine and overdue escalation checks"
+          >
+            <RefreshCw size={14} className={isGenerating ? 'spin-icon' : ''} />
+            <span>{isGenerating ? 'Running Engine...' : 'Run Auto Schedule'}</span>
+          </button>
+        )}
 
-        {/* Instant Role Switcher */}
-        <div className="role-switcher-container">
-          <UserCheck size={16} color="var(--primary-600)" />
+        {/* Active Role Badge */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '6px 12px',
+          borderRadius: '8px',
+          backgroundColor: `${activeRoleObj.color}15`,
+          border: `1px solid ${activeRoleObj.color}40`,
+        }}>
+          <UserCheck size={16} color={activeRoleObj.color} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-muted)' }}>
-              Switch Role:
+            <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-muted)', lineHeight: 1 }}>
+              Logged In As
             </span>
-            <select
-              value={currentRole}
-              onChange={(e) => switchRole(e.target.value)}
-              className="role-switcher-select"
-            >
-              {ROLES_LIST.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.label} — {r.badge}
-                </option>
-              ))}
-            </select>
+            <span style={{ fontSize: '12.5px', fontWeight: 800, color: activeRoleObj.color, lineHeight: 1.2 }}>
+              {activeRoleObj.label}
+            </span>
           </div>
         </div>
 
@@ -305,7 +310,16 @@ export const Header = ({ onNavigate }) => {
         </div>
 
         {/* User Profile Info */}
-        <div className="user-profile-btn" onClick={() => onNavigate && onNavigate('users')}>
+        <div
+          className="user-profile-btn"
+          onClick={() => {
+            if (canonicalRole === 'admin' && onNavigate) {
+              onNavigate('users');
+            }
+          }}
+          style={{ cursor: canonicalRole === 'admin' ? 'pointer' : 'default' }}
+          title={canonicalRole === 'admin' ? 'Manage Users' : `${currentUser?.full_name} (${activeRoleObj.label})`}
+        >
           <img
             src={currentUser?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
             alt="Avatar"
@@ -313,14 +327,38 @@ export const Header = ({ onNavigate }) => {
           />
           <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.2 }}>
-              {currentUser?.full_name || 'Admin'}
+              {currentUser?.full_name || 'Active User'}
             </span>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              {currentUser?.department_name || 'Executive Oversight'}
+              {currentUser?.department_name || activeRoleObj.badge}
             </span>
           </div>
         </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={() => {
+            if (window.confirm('Are you sure you want to sign out?')) {
+              logout();
+            }
+          }}
+          className="btn btn-outline btn-sm"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#dc2626',
+            borderColor: '#fca5a5',
+            backgroundColor: '#ffffff',
+            fontWeight: 700
+          }}
+          title="Sign out of current workspace"
+        >
+          <LogOut size={15} />
+          <span>Logout</span>
+        </button>
       </div>
     </header>
   );
 };
+

@@ -23,7 +23,7 @@ router.post('/auth/login', authController.login);
 router.post('/auth/switch-role', authController.switchRole);
 router.get('/auth/me', authMiddleware, authController.getMe);
 router.put('/auth/profile', authMiddleware, authController.updateProfile);
-router.get('/auth/users', authMiddleware, authController.getUsers);
+router.get('/auth/users', authMiddleware, requireRole(['admin']), authController.getUsers);
 
 // ==========================================
 // 2. FACTORIES & DEPARTMENTS
@@ -71,8 +71,8 @@ router.post('/tasks/auto-schedule', authMiddleware, requireRole(['admin']), task
 // ==========================================
 // 5. AUDITS & CHECKLISTS
 // ==========================================
-router.get('/audits', authMiddleware, auditsController.getAudits);
-router.get('/audits/:id', authMiddleware, auditsController.getAuditById);
+router.get('/audits', authMiddleware, requireRole(['admin', 'auditor']), auditsController.getAudits);
+router.get('/audits/:id', authMiddleware, requireRole(['admin', 'auditor']), auditsController.getAuditById);
 router.post('/audits', authMiddleware, requireRole(['admin', 'auditor']), auditsController.createAudit);
 router.put('/audits/:id/status', authMiddleware, requireRole(['admin', 'auditor']), auditsController.updateAuditStatus);
 router.put('/audits/checklist/:checklist_id', authMiddleware, requireRole(['admin', 'auditor']), auditsController.updateChecklistItem);
@@ -123,19 +123,19 @@ router.post('/notifications/test-dispatch', authMiddleware, notificationsControl
 // ==========================================
 // 11. REPORTS
 // ==========================================
-router.get('/reports/compliance', authMiddleware, reportsController.getComplianceReport);
-router.get('/reports/audits', authMiddleware, reportsController.getAuditReport);
-router.get('/reports/ncs', authMiddleware, reportsController.getNCReport);
-router.get('/reports/caps', authMiddleware, reportsController.getCAPReport);
-router.get('/reports/export/:type', authMiddleware, reportsController.exportCSV);
+router.get('/reports/compliance', authMiddleware, requireRole(['admin', 'auditor']), reportsController.getComplianceReport);
+router.get('/reports/audits', authMiddleware, requireRole(['admin', 'auditor']), reportsController.getAuditReport);
+router.get('/reports/ncs', authMiddleware, requireRole(['admin', 'auditor']), reportsController.getNCReport);
+router.get('/reports/caps', authMiddleware, requireRole(['admin', 'auditor']), reportsController.getCAPReport);
+router.get('/reports/export/:type', authMiddleware, requireRole(['admin', 'auditor']), reportsController.exportCSV);
 
 // ==========================================
 // 12. SETTINGS, CONFIGURATION & AUDIT TRAIL
 // ==========================================
-router.get('/settings/score-config', authMiddleware, settingsController.getScoreConfig);
+router.get('/settings/score-config', authMiddleware, requireRole(['admin']), settingsController.getScoreConfig);
 router.put('/settings/score-config', authMiddleware, requireRole(['admin']), settingsController.updateScoreConfig);
-router.get('/settings/escalation-config', authMiddleware, settingsController.getEscalationConfig);
+router.get('/settings/escalation-config', authMiddleware, requireRole(['admin']), settingsController.getEscalationConfig);
 router.put('/settings/escalation-config', authMiddleware, requireRole(['admin']), settingsController.updateEscalationConfig);
-router.get('/settings/audit-logs', authMiddleware, requireRole(['admin', 'auditor']), settingsController.getAuditLogs);
+router.get('/settings/audit-logs', authMiddleware, requireRole(['admin']), settingsController.getAuditLogs);
 
 export default router;

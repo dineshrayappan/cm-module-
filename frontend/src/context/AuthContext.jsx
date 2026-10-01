@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api, getActiveRole, setActiveRole, setAuthToken } from '../services/api';
+import { api, getAuthToken, setAuthToken, removeAuthToken, getStoredUser, setStoredUser } from '../services/api';
 
 const AuthContext = createContext();
 
 export const normalizeRole = (role) => {
-  if (!role) return 'admin';
+  if (!role) return 'supervisor';
   const r = role.toLowerCase();
   if (['admin', 'super_admin', 'compliance_head', 'compliance_manager'].includes(r)) return 'admin';
   if (['auditor', 'internal_auditor', 'viewer'].includes(r)) return 'auditor';
@@ -37,8 +37,10 @@ export const ROLES_LIST = [
 ];
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [currentRole, setCurrentRole] = useState(normalizeRole(getActiveRole()));
+  const initialUser = getStoredUser();
+  const initialToken = getAuthToken();
+  const [currentUser, setCurrentUser] = useState(initialToken ? initialUser : null);
+  const [currentRole, setCurrentRole] = useState(initialToken && initialUser ? normalizeRole(initialUser.role) : null);
   const [factories, setFactories] = useState([]);
   const [activeFactory, setActiveFactory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,18 +48,32 @@ export const AuthProvider = ({ children }) => {
   // Load user profile & factories on mount
   useEffect(() => {
     loadUserData();
-  }, [currentRole]);
+  }, []);
 
   const loadUserData = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setCurrentUser(null);
+      setCurrentRole(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const [userRes, factoriesRes] = await Promise.all([
-        api.auth.getMe().catch(() => null),
+        api.auth.getMe().catch((err) => {
+          console.warn('Session expired or invalid:', err);
+          logout();
+          return null;
+        }),
         api.factories.getAll().catch(() => ({ factories: [] }))
       ]);
 
       if (userRes?.user) {
+        setStoredUser(userRes.user);
         setCurrentUser(userRes.user);
+        setCurrentRole(normalizeRole(userRes.user.role));
       }
 
       if (factoriesRes?.factories) {
@@ -73,21 +89,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const switchRole = async (newRole) => {
-    try {
-      const canonical = normalizeRole(newRole);
-      setActiveRole(canonical);
+  const login = async (identifier, password) => {
+    const res = await api.auth.login({ identifier, password });
+    if (res?.token && res?.user) {
+      setAuthToken(res.token);
+      setStoredUser(res.user);
+      const canonical = normalizeRole(res.user.role);
+      setCurrentUser(res.user);
       setCurrentRole(canonical);
-      const res = await api.auth.switchRole(canonical);
-      if (res?.token) {
-        setAuthToken(res.token);
-      }
-      if (res?.user) {
-        setCurrentUser(res.user);
-      }
-    } catch (err) {
-      console.error('Role switch failed:', err);
+
+      // Load factories for user
+      try {
+        const factoriesRes = await api.factories.getAll();
+        if (factoriesRes?.factories?.length) {
+          setFactories(factoriesRes.factories);
+          setActiveFactory(factoriesRes.factories[0]);
+        }
+      } catch (e) {}
+
+      return res.user;
     }
+    throw new Error(res?.message || 'Login failed');
+  };
+
+  const logout = () => {
+    removeAuthToken();
+    setCurrentUser(null);
+    setCurrentRole(null);
   };
 
   const hasPermission = (permission) => {
@@ -117,6 +145,10 @@ export const AuthProvider = ({ children }) => {
         'view_dashboards',
         'view_tasks'
       ];
+      // Explicitly blocked for auditor
+      if (['manage_users', 'manage_settings', 'manage_departments', 'manage_requirements', 'create_standard'].includes(permission)) {
+        return false;
+      }
       return auditorPerms.includes(permission);
     }
 
@@ -132,10 +164,25 @@ export const AuthProvider = ({ children }) => {
         'create_cap',
         'submit_cap',
         'upload_evidence',
-        'view_dashboards'
+        'view_dashboards',
+        'department_compliance'
       ];
       // Explicitly blocked for supervisor
-      if (['manage_settings', 'close_nc', 'verify_nc', 'verify_cap', 'verify_evidence', 'review_cap', 'manage_users', 'manage_departments', 'manage_requirements', 'create_audit'].includes(permission)) {
+      if ([
+        'manage_settings',
+        'close_nc',
+        'verify_nc',
+        'verify_cap',
+        'verify_evidence',
+        'review_cap',
+        'manage_users',
+        'manage_departments',
+        'manage_requirements',
+        'create_audit',
+        'conduct_audits',
+        'audit_checklist',
+        'view_reports'
+      ].includes(permission)) {
         return false;
       }
       return supervisorPerms.includes(permission);
@@ -149,7 +196,9 @@ export const AuthProvider = ({ children }) => {
       value={{
         currentUser,
         currentRole,
-        switchRole,
+        login,
+        logout,
+        isAuthenticated: Boolean(currentUser && getAuthToken()),
         factories,
         activeFactory,
         setActiveFactory,

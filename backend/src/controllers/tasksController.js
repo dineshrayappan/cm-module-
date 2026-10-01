@@ -17,6 +17,11 @@ export const tasksController = {
       if (factory_id) filter.factory_id = factory_id;
       if (search) filter.title = `LIKE:${search}`;
 
+      // Enforce Supervisor Department Isolation
+      if (req.user && req.user.role === 'supervisor' && req.user.department_id) {
+        filter.department_id = req.user.department_id;
+      }
+
       const tasks = await db.find('tasks', filter, { sortBy: 'due_date', sortOrder: 'asc' });
       const departments = await db.find('departments', {});
       const profiles = await db.find('profiles', {});

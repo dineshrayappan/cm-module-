@@ -18,12 +18,13 @@ import {
   Layers,
   FileText,
   Upload,
-  CheckCircle2
+  CheckCircle2,
+  LogOut
 } from 'lucide-react';
 import { useAuth, ROLES_LIST, normalizeRole } from '../../context/AuthContext';
 
 export const Sidebar = ({ activePage, setActivePage }) => {
-  const { currentRole, currentUser } = useAuth();
+  const { currentRole, currentUser, logout } = useAuth();
   const canonicalRole = normalizeRole(currentRole);
 
   const [complianceOpen, setComplianceOpen] = useState(true);
@@ -403,28 +404,55 @@ export const Sidebar = ({ activePage, setActivePage }) => {
 
       </nav>
 
-      {/* Sidebar Footer with Active Role indicator */}
+      {/* Sidebar Footer with Active Role indicator and Logout */}
       <div className="sidebar-footer">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              backgroundColor: activeRoleObj.color,
-              boxShadow: `0 0 10px ${activeRoleObj.color}`
-            }}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {currentUser?.full_name || 'Active User'}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Role: <strong style={{ color: activeRoleObj.color }}>{activeRoleObj.label}</strong>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: activeRoleObj.color,
+                boxShadow: `0 0 10px ${activeRoleObj.color}`,
+                flexShrink: 0
+              }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentUser?.full_name || 'Active User'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                Role: <strong style={{ color: activeRoleObj.color }}>{activeRoleObj.label}</strong>
+              </div>
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to log out?')) {
+                logout();
+              }
+            }}
+            title="Log Out"
+            style={{
+              background: 'none',
+              border: '1px solid #fee2e2',
+              borderRadius: '6px',
+              padding: '6px',
+              color: '#ef4444',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#fff'
+            }}
+          >
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
     </aside>
   );
 };
+

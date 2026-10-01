@@ -18,12 +18,17 @@ export const dashboardController = {
       const now = new Date();
       const todayStr = now.toISOString().split('T')[0];
 
-      // Filter by department if selected
+      // Enforce Supervisor Department Isolation
+      const effectiveDeptId = (req.user && req.user.role === 'supervisor' && req.user.department_id)
+        ? req.user.department_id
+        : department_id;
+
+      // Filter by department if selected or supervisor department
       let filteredNCs = ncs;
       let filteredTasks = tasks;
-      if (department_id) {
-        filteredNCs = ncs.filter(n => n.department_id === department_id);
-        filteredTasks = tasks.filter(t => t.department_id === department_id);
+      if (effectiveDeptId) {
+        filteredNCs = ncs.filter(n => n.department_id === effectiveDeptId);
+        filteredTasks = tasks.filter(t => t.department_id === effectiveDeptId);
       }
 
       const openNCs = filteredNCs.filter(n => n.status !== 'Closed');
@@ -150,7 +155,7 @@ export const dashboardController = {
         }
       ];
 
-      const isFiltered = Boolean(department_id);
+      const isFiltered = Boolean(effectiveDeptId);
 
       const overallComplianceScore = isFiltered ? (scoresData.overall_compliance_score || 85) : 91;
       const openNcsCount = isFiltered ? openNCs.length : 27;

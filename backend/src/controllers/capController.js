@@ -13,7 +13,7 @@ export const capController = {
       const ncs = await db.find('nonConformities', {});
       const departments = await db.find('departments', {});
 
-      const enriched = caps.map(cap => {
+      let enriched = caps.map(cap => {
         const ncDoc = ncs.find(n => n.id === cap.nc_id);
         const deptDoc = ncDoc ? departments.find(d => d.id === ncDoc.department_id) : null;
         return {
@@ -21,9 +21,15 @@ export const capController = {
           nc_number: ncDoc?.nc_number || 'NC Ref',
           nc_finding: ncDoc?.finding || '',
           nc_severity: ncDoc?.severity || 'Major',
+          department_id: ncDoc?.department_id,
           department_name: deptDoc?.name || 'General Factory'
         };
       });
+
+      // Enforce Supervisor Department Isolation
+      if (req.user && req.user.role === 'supervisor' && req.user.department_id) {
+        enriched = enriched.filter(c => c.department_id === req.user.department_id);
+      }
 
       res.json({ success: true, count: enriched.length, corrective_actions: enriched });
     } catch (err) {

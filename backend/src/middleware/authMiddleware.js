@@ -6,33 +6,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'garment-compliance-secret-key-2026
 export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const customUserId = req.headers['x-user-id'];
-    const customUserRole = req.headers['x-user-role'];
 
-    // 1. Direct Demo Header Switcher (for instant testing of any of the 7 roles without relogging)
-    if (customUserRole || customUserId) {
-      let profile = null;
-      if (customUserId) {
-        profile = await db.findById('profiles', customUserId);
-      }
-      if (!profile && customUserRole) {
-        profile = await db.findOne('profiles', { role: customUserRole });
-      }
-
-      if (profile) {
-        req.user = {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          role: profile.role,
-          factory_id: profile.factory_id,
-          department_id: profile.department_id
-        };
-        return next();
-      }
-    }
-
-    // 2. Token-based auth (JWT or Supabase access token)
+    // 1. Token-based auth (JWT or Supabase access token) - Primary Authority
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
 
@@ -44,9 +19,10 @@ export const authMiddleware = async (req, res, next) => {
             const profile = await db.findById('profiles', user.id);
             req.user = {
               id: user.id,
+              username: profile?.username || user.email?.split('@')[0],
               email: user.email,
               full_name: profile ? profile.full_name : (user.user_metadata?.full_name || 'User'),
-              role: profile ? profile.role : 'viewer',
+              role: profile ? profile.role : 'supervisor',
               factory_id: profile?.factory_id || null,
               department_id: profile?.department_id || null
             };
@@ -63,6 +39,7 @@ export const authMiddleware = async (req, res, next) => {
         const profile = await db.findById('profiles', decoded.id);
         req.user = {
           id: decoded.id,
+          username: decoded.username || profile?.username,
           email: decoded.email,
           full_name: profile ? profile.full_name : decoded.full_name,
           role: profile ? profile.role : decoded.role,
@@ -71,22 +48,12 @@ export const authMiddleware = async (req, res, next) => {
         };
         return next();
       } catch (jwtErr) {
-        // If expired or invalid token
+        return res.status(401).json({ success: false, message: 'Invalid or expired session. Please log in again.' });
       }
     }
 
-    // 3. Default active user (defaults to Super Admin / Compliance Head for local dev resilience)
-    const defaultProfile = await db.findOne('profiles', { role: 'super_admin' }) || {
-      id: 'u1111111-1111-1111-1111-111111111111',
-      email: 'admin@apexgarments.com',
-      full_name: 'Kazi Nazrul Islam',
-      role: 'super_admin',
-      factory_id: 'f1111111-1111-1111-1111-111111111111',
-      department_id: null
-    };
-
-    req.user = defaultProfile;
-    next();
+    // 2. If no Bearer token provided, deny access
+    return res.status(401).json({ success: false, message: 'Authentication required. Please log in.' });
   } catch (error) {
     console.error('Auth Middleware Error:', error);
     res.status(401).json({ success: false, message: 'Authentication required.' });
